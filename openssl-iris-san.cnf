@@ -1,0 +1,14 @@
+[req]
+distinguished_name = dn
+x509_extensions = v3_req
+prompt = no
+
+[dn]
+CN = 192.168.1.91
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+IP.1 = 192.168.1.91
+DNS.1 = localhost
