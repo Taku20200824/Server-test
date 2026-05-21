@@ -30,8 +30,6 @@
                     <h1>Barcode workspace</h1>
                 </div>
                 <div class="header-meta">
-                    <span>Search</span>
-                    <span>Register</span>
                     <button type="button" data-camera-toggle>Camera scan</button>
                 </div>
             </header>
