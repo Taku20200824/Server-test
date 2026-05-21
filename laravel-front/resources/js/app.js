@@ -96,6 +96,11 @@ function showBarcodeResult(payload) {
     scrollResultIntoView();
 }
 
+function showLoadingResult(message = 'Loading data') {
+    barcodeResult.innerHTML = `<p class="empty-state is-loading">${escapeHtml(message)}</p>`;
+    armResultReveal();
+}
+
 function showRegisterResult(data) {
     const rows = [
         ['Status', data.message],
@@ -378,6 +383,7 @@ form?.addEventListener('submit', (event) => {
 
     event.submitter.disabled = true;
     setStatus('Sending');
+    showLoadingResult(action === 'register' ? 'Saving data' : 'Loading data');
 
     sendRequest(action, event.submitter).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;

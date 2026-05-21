@@ -26,8 +26,8 @@
         <main class="app-shell">
             <header class="app-header">
                 <div>
-                    <p class="eyebrow">IRIS Console</p>
-                    <h1>Barcode workspace</h1>
+                    <p class="eyebrow"></p>
+                    <h1></h1>
                 </div>
                 <div class="header-meta">
                     <button type="button" data-camera-toggle>Camera scan</button>
