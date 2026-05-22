@@ -7,9 +7,31 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    public function test_guest_is_redirected_to_login(): void
+    {
+        $this->get('/')
+            ->assertRedirect('/login');
+    }
+
+    public function test_login_accepts_configured_credentials(): void
+    {
+        config([
+            'services.iris_login.user' => 'admin',
+            'services.iris_login.password' => 'secret',
+        ]);
+
+        $this->post('/login', [
+            'username' => 'admin',
+            'password' => 'secret',
+        ])
+            ->assertRedirect(route('iris.index'));
+
+        $this->assertTrue(session('iris_logged_in'));
+    }
+
     public function test_the_iris_console_returns_a_successful_response(): void
     {
-        $response = $this->get('/');
+        $response = $this->withSession(['iris_logged_in' => true])->get('/');
 
         $response
             ->assertStatus(200)
@@ -30,7 +52,7 @@ class ExampleTest extends TestCase
             '127.0.0.1:52773/test/api/search/000001' => Http::response(['found' => true], 200),
         ]);
 
-        $response = $this->postJson('/iris-test/search', [
+        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/search', [
             'barcode' => '*000001',
         ]);
 
@@ -62,7 +84,7 @@ class ExampleTest extends TestCase
             ], 200),
         ]);
 
-        $response = $this->postJson('/iris-test/search', [
+        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/search', [
             'barcode' => '',
         ]);
 
@@ -89,7 +111,7 @@ class ExampleTest extends TestCase
             '127.0.0.1:52773/test/api/register' => Http::response(['found' => true, 'message' => 'Registered'], 200),
         ]);
 
-        $response = $this->postJson('/iris-test/register', [
+        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
             'barcode' => '*000008',
             'name' => 'SAKURA',
             'kanji' => 'サクラ',
@@ -129,7 +151,7 @@ class ExampleTest extends TestCase
             '127.0.0.1:52773/test/api/register' => Http::response(['message' => 'Registered'], 200),
         ]);
 
-        $response = $this->postJson('/iris-test/register', [
+        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
             'barcode' => '',
             'name' => 'KAKASHI',
             'kanji' => 'カカシ',

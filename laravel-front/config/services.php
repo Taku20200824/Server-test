@@ -46,4 +46,9 @@ return [
         'list_fallback_max' => env('IRIS_LIST_FALLBACK_MAX', 80),
     ],
 
+    'iris_login' => [
+        'user' => env('IRIS_LOGIN_USER', 'admin'),
+        'password' => env('IRIS_LOGIN_PASSWORD', 'iris1234'),
+    ],
+
 ];
