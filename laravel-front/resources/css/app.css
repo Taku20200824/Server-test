@@ -988,6 +988,75 @@ textarea:focus {
         grid-template-columns: 1fr;
         gap: 4px;
     }
+
+    .barcode-result {
+        min-height: 0;
+    }
+
+    .table-wrap {
+        max-height: none;
+        overflow: visible;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+
+    .records-table,
+    .records-table thead,
+    .records-table tbody,
+    .records-table tr,
+    .records-table td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .records-table thead {
+        display: none;
+    }
+
+    .records-table {
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+
+    .records-table tbody tr {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, .58);
+        box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+        backdrop-filter: blur(22px) saturate(125%);
+    }
+
+    :root[data-theme='dark'] .records-table tbody tr {
+        background: rgba(28, 28, 28, .62);
+    }
+
+    .records-table th,
+    .records-table td {
+        border-bottom: 0;
+    }
+
+    .records-table td {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        min-height: 38px;
+        padding: 9px 4px;
+        background: transparent !important;
+    }
+
+    .records-table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: .68rem;
+        font-weight: 820;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
 }
 
 @keyframes panel-in {

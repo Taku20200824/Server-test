@@ -166,13 +166,13 @@ function showRecordTable(records, limit = null) {
             <tbody>
                 ${visibleRecords.map((record, index) => `
                     <tr class="reveal-row" style="--reveal-delay: ${Math.min(index * 35, 420)}ms">
-                        <td>${escapeHtml(record.no)}</td>
-                        <td>${escapeHtml(record.barcode)}</td>
-                        <td>${escapeHtml(record.name)}</td>
-                        <td>${escapeHtml(record.kanji)}</td>
-                        <td>${escapeHtml(record.katakana)}</td>
-                        <td>${escapeHtml(record.address)}</td>
-                        <td>${escapeHtml(record.addedDateTime)}</td>
+                        <td data-label="No">${escapeHtml(record.no)}</td>
+                        <td data-label="Barcode">${escapeHtml(record.barcode)}</td>
+                        <td data-label="Name">${escapeHtml(record.name)}</td>
+                        <td data-label="Kanji">${escapeHtml(record.kanji)}</td>
+                        <td data-label="Katakana">${escapeHtml(record.katakana)}</td>
+                        <td data-label="Address">${escapeHtml(record.address)}</td>
+                        <td data-label="Added">${escapeHtml(record.addedDateTime)}</td>
                     </tr>
                 `).join('')}
             </tbody>
