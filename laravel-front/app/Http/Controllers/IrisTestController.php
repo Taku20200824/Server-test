@@ -57,11 +57,36 @@ class IrisTestController extends Controller
             ], 422);
         }
 
+        $fieldErrors = $this->validateNameScripts($validated);
+
+        if ($fieldErrors !== []) {
+            return response()->json([
+                'message' => 'Kanji/Katakana check failed.',
+                'errors' => $fieldErrors,
+            ], 422);
+        }
+
         $barcode = $this->cleanBarcode($validated['barcode'] ?? '');
 
         if ($barcode === '') {
             try {
                 $barcode = $this->nextBarcode();
+            } catch (ConnectionException $exception) {
+                return response()->json([
+                    'message' => 'IRIS server could not be reached.',
+                    'detail' => $exception->getMessage(),
+                ], 502);
+            }
+        } else {
+            try {
+                if ($this->barcodeExists($barcode)) {
+                    return response()->json([
+                        'message' => 'This ID already exists. Please change the ID.',
+                        'errors' => [
+                            'barcode' => ['This ID already exists. Please change the ID.'],
+                        ],
+                    ], 422);
+                }
             } catch (ConnectionException $exception) {
                 return response()->json([
                     'message' => 'IRIS server could not be reached.',
@@ -79,6 +104,35 @@ class IrisTestController extends Controller
         ];
 
         return $this->callIris('/api/register', $payload, 'post');
+    }
+
+    private function validateNameScripts(array $validated): array
+    {
+        $errors = [];
+        $kanji = trim((string) ($validated['kanji'] ?? ''));
+        $katakana = trim((string) ($validated['katakana'] ?? ''));
+
+        if ($kanji !== '' && ! preg_match('/^[\p{Han}\p{Hiragana}々〆〇ヶー\s　]+$/u', $kanji)) {
+            $errors['kanji'] = ['Kanji must use kanji or hiragana characters.'];
+        }
+
+        if ($katakana !== '' && ! preg_match('/^[\p{Katakana}\x{FF66}-\x{FF9F}ーｰ・･ヽヾ\s　]+$/u', $katakana)) {
+            $errors['katakana'] = ['Katakana must use katakana characters.'];
+        }
+
+        return $errors;
+    }
+
+    private function barcodeExists(string $barcode): bool
+    {
+        $request = Http::withBasicAuth(config('services.iris.user'), config('services.iris.password'))
+            ->acceptJson()
+            ->timeout((int) config('services.iris.timeout', 10));
+
+        $response = $request->get($this->irisBaseUrl().'/api/search/'.rawurlencode($barcode));
+        $data = $response->json();
+
+        return $response->successful() && is_array($data) && (bool) ($data['found'] ?? false);
     }
 
     private function callIris(string $path, array $meta = [], string $method = 'get')

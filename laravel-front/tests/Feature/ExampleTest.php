@@ -108,13 +108,14 @@ class ExampleTest extends TestCase
         ]);
 
         Http::fake([
+            '127.0.0.1:52773/test/api/search/000008' => Http::response(['found' => false], 200),
             '127.0.0.1:52773/test/api/register' => Http::response(['found' => true, 'message' => 'Registered'], 200),
         ]);
 
         $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
             'barcode' => '*000008',
             'name' => 'SAKURA',
-            'kanji' => 'サクラ',
+            'kanji' => '桜',
             'katakana' => 'サクラ',
             'address' => '大阪',
         ]);
@@ -154,7 +155,7 @@ class ExampleTest extends TestCase
         $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
             'barcode' => '',
             'name' => 'KAKASHI',
-            'kanji' => 'カカシ',
+            'kanji' => '案山子',
             'katakana' => 'カカシ',
             'address' => '東京',
         ]);
@@ -168,5 +169,62 @@ class ExampleTest extends TestCase
             && $request->url() === 'http://127.0.0.1:52773/test/api/register'
             && $request['barcode'] === '000009'
             && $request['name'] === 'KAKASHI');
+    }
+
+    public function test_iris_register_rejects_duplicate_manual_barcode(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/search/000008' => Http::response(['found' => true], 200),
+        ]);
+
+        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
+            'barcode' => '000008',
+            'name' => 'SAKURA',
+            'kanji' => '桜',
+            'katakana' => 'サクラ',
+            'address' => '大阪',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This ID already exists. Please change the ID.')
+            ->assertJsonValidationErrors('barcode');
+
+        Http::assertNotSent(fn ($request) => $request->method() === 'POST'
+            && $request->url() === 'http://127.0.0.1:52773/test/api/register');
+    }
+
+    public function test_iris_register_rejects_wrong_kanji_and_katakana_scripts(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake();
+
+        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
+            'barcode' => '000010',
+            'name' => 'NARUTO',
+            'kanji' => 'NARUTO',
+            'katakana' => '拓',
+            'address' => '大阪',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Kanji/Katakana check failed.')
+            ->assertJsonValidationErrors(['kanji', 'katakana']);
     }
 }

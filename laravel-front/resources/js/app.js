@@ -49,7 +49,11 @@ function showBarcodeResult(payload) {
     }
 
     if (!data) {
-        barcodeResult.innerHTML = '<p class="empty-state">No data</p>';
+        const message = payload?.body?.message;
+        barcodeResult.innerHTML = message
+            ? `<div class="result-alert">${escapeHtml(message)}</div>`
+            : '<p class="empty-state">No data</p>';
+        armResultReveal();
         return;
     }
 
