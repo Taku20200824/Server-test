@@ -319,14 +319,8 @@ function showCameraHelp(message) {
     cameraHelp.textContent = message;
 }
 
-function buildPayload(action) {
-    const payload = Object.fromEntries(new FormData(form));
-
-    if (action === 'register') {
-        payload.barcode = '';
-    }
-
-    return payload;
+function buildPayload() {
+    return Object.fromEntries(new FormData(form));
 }
 
 async function sendRequest(action, trigger) {
