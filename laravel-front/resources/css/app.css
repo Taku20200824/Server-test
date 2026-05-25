@@ -25,6 +25,22 @@
     --inner-line: inset 0 0 0 1px rgba(255, 255, 255, .55);
 }
 
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: #111111;
+    --ink: #f7f7f5;
+    --muted: #b8b8b3;
+    --line: rgba(255, 255, 255, .12);
+    --glass: rgba(28, 28, 28, .58);
+    --glass-soft: rgba(255, 255, 255, .08);
+    --glass-strong: rgba(44, 44, 44, .84);
+    --shadow-sm: 0 10px 30px rgba(0, 0, 0, .28);
+    --shadow-md: 0 24px 70px rgba(0, 0, 0, .36);
+    --shadow-lg: 0 40px 110px rgba(0, 0, 0, .46);
+    --inner-light: inset 0 1px 0 rgba(255, 255, 255, .12);
+    --inner-line: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+
 * {
     box-sizing: border-box;
 }
@@ -44,6 +60,17 @@ body {
     font-family: var(--font-sans);
 }
 
+:root[data-theme='dark'] body {
+    background:
+        linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px),
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, .08), transparent 34rem),
+        radial-gradient(circle at 12% 38%, rgba(255, 255, 255, .05), transparent 24rem),
+        radial-gradient(circle at 88% 72%, rgba(255, 255, 255, .04), transparent 32rem),
+        var(--bg);
+    background-size: 28px 28px, 28px 28px, auto, auto, auto;
+}
+
 body::before {
     position: fixed;
     inset: 0;
@@ -55,6 +82,12 @@ body::before {
     pointer-events: none;
 }
 
+:root[data-theme='dark'] body::before {
+    background:
+        linear-gradient(120deg, rgba(255, 255, 255, .05), transparent 42%),
+        linear-gradient(180deg, transparent 50%, rgba(255, 255, 255, .04));
+}
+
 button,
 input,
 textarea {
@@ -63,6 +96,12 @@ textarea {
 
 button {
     -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 0;
 }
 
 .app-shell {
@@ -165,6 +204,14 @@ button {
     z-index: 0;
 }
 
+:root[data-theme='dark'] .iris-form::before,
+:root[data-theme='dark'] .result-panel,
+:root[data-theme='dark'] .register-fields,
+:root[data-theme='dark'] .scanner-panel,
+:root[data-theme='dark'] .login-card {
+    background: linear-gradient(150deg, rgba(34, 34, 34, .72), rgba(18, 18, 18, .48));
+}
+
 .iris-form > label:first-child {
     grid-column: 5 / 9;
     grid-row: 1;
@@ -198,6 +245,26 @@ button {
     backdrop-filter: blur(24px) saturate(125%);
     font-weight: 720;
     text-align: center;
+}
+
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] .iris-form > label:first-child input {
+    border-color: rgba(255, 255, 255, .12);
+    background: rgba(22, 22, 22, .7);
+    color: var(--ink);
+}
+
+:root[data-theme='dark'] input::placeholder,
+:root[data-theme='dark'] textarea::placeholder {
+    color: #858585;
+}
+
+:root[data-theme='dark'] input:focus,
+:root[data-theme='dark'] textarea:focus {
+    border-color: rgba(255, 255, 255, .28);
+    background: rgba(28, 28, 28, .86);
+    box-shadow: var(--inner-light), var(--inner-line), 0 0 0 5px rgba(255, 255, 255, .08), var(--shadow-sm);
 }
 
 .iris-form > .actions {
@@ -244,6 +311,12 @@ button {
         radial-gradient(circle at 70% 0%, rgba(255, 255, 255, .48), transparent 20rem);
     content: '';
     pointer-events: none;
+}
+
+:root[data-theme='dark'] .result-panel::before {
+    background:
+        linear-gradient(120deg, rgba(255, 255, 255, .05), transparent 38%),
+        radial-gradient(circle at 70% 0%, rgba(255, 255, 255, .06), transparent 20rem);
 }
 
 .result-heading,
@@ -397,6 +470,17 @@ textarea:focus {
     white-space: nowrap;
 }
 
+:root[data-theme='dark'] .scanner-state,
+:root[data-theme='dark'] .scanner-state.is-live,
+:root[data-theme='dark'] .scanner-state.is-error,
+:root[data-theme='dark'] .camera-help,
+:root[data-theme='dark'] .result-row,
+:root[data-theme='dark'] .result-alert,
+:root[data-theme='dark'] .success-ribbon,
+:root[data-theme='dark'] .table-wrap {
+    background: rgba(28, 28, 28, .62);
+}
+
 .scanner-state.is-live,
 .scanner-state.is-error {
     background: rgba(255, 255, 255, .82);
@@ -482,6 +566,24 @@ textarea:focus {
     font-weight: 820;
     line-height: 1;
     transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+:root[data-theme='dark'] .header-meta span,
+:root[data-theme='dark'] .header-meta button,
+:root[data-theme='dark'] .button,
+:root[data-theme='dark'] .ghost-button,
+:root[data-theme='dark'] .button.primary,
+:root[data-theme='dark'] .button.success,
+:root[data-theme='dark'] .button.danger {
+    border-color: rgba(255, 255, 255, .12);
+    background: linear-gradient(145deg, rgba(38, 38, 38, .82), rgba(18, 18, 18, .56));
+    color: var(--ink);
+}
+
+:root[data-theme='dark'] .header-meta button:hover,
+:root[data-theme='dark'] .button:hover,
+:root[data-theme='dark'] .ghost-button:hover {
+    background: rgba(46, 46, 46, .88);
 }
 
 .button {
@@ -671,6 +773,23 @@ textarea:focus {
     text-transform: uppercase;
 }
 
+:root[data-theme='dark'] .records-table th {
+    background: rgba(22, 22, 22, .82);
+}
+
+:root[data-theme='dark'] .records-table th,
+:root[data-theme='dark'] .records-table td {
+    border-bottom-color: rgba(255, 255, 255, .08);
+}
+
+:root[data-theme='dark'] .records-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, .035);
+}
+
+:root[data-theme='dark'] .records-table tbody tr:hover td {
+    background: rgba(255, 255, 255, .08);
+}
+
 .records-table td {
     color: var(--ink);
     font-weight: 700;
@@ -704,6 +823,23 @@ textarea:focus {
     min-height: 100vh;
     place-items: center;
     padding: 24px;
+}
+
+.theme-float {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    min-height: 34px;
+    padding: 7px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--glass);
+    color: var(--ink);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    backdrop-filter: blur(22px) saturate(130%);
+    cursor: pointer;
+    font-size: .78rem;
+    font-weight: 760;
 }
 
 .login-card {

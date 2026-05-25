@@ -6,6 +6,12 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>IRIS Console</title>
+        <script>
+            (() => {
+                const theme = localStorage.getItem('iris-theme') || 'light';
+                document.documentElement.dataset.theme = theme;
+            })();
+        </script>
 
         @php
             $manifestPath = public_path('build/manifest.json');
@@ -30,6 +36,7 @@
                     <h1></h1>
                 </div>
                 <div class="header-meta">
+                    <button type="button" data-theme-toggle>Dark mode</button>
                     <button type="button" data-camera-toggle>Camera scan</button>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

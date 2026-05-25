@@ -16,6 +16,7 @@ const cameraStart = document.querySelector('[data-camera-start]');
 const cameraStop = document.querySelector('[data-camera-stop]');
 const cameraToggle = document.querySelector('[data-camera-toggle]');
 const scannerPanel = document.querySelector('[data-scanner-panel]');
+const themeToggle = document.querySelector('[data-theme-toggle]');
 
 const codeReader = new BrowserMultiFormatReader();
 let scannerControls = null;
@@ -27,6 +28,19 @@ const routes = {
 };
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+function setTheme(theme) {
+    const nextTheme = theme === 'dark' ? 'dark' : 'light';
+
+    document.documentElement.dataset.theme = nextTheme;
+    localStorage.setItem('iris-theme', nextTheme);
+
+    if (themeToggle) {
+        themeToggle.textContent = nextTheme === 'dark' ? 'White mode' : 'Dark mode';
+    }
+}
+
+setTheme(localStorage.getItem('iris-theme') || document.documentElement.dataset.theme || 'light');
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -407,6 +421,10 @@ cameraToggle?.addEventListener('click', () => {
 
 registerToggle?.addEventListener('click', () => {
     toggleRegisterPanel();
+});
+
+themeToggle?.addEventListener('click', () => {
+    setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 });
 
 async function stopScanner() {
