@@ -49,6 +49,8 @@ return [
     'iris_login' => [
         'user' => env('IRIS_LOGIN_USER', 'admin'),
         'password' => env('IRIS_LOGIN_PASSWORD', 'iris1234'),
+        'viewer_user' => env('IRIS_VIEWER_USER', 'taku'),
+        'viewer_password' => env('IRIS_VIEWER_PASSWORD', 'taku1234'),
     ],
 
 ];

@@ -7,6 +7,24 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    private function adminSession(): array
+    {
+        return [
+            'iris_logged_in' => true,
+            'iris_login_user' => 'admin',
+            'iris_login_role' => 'admin',
+        ];
+    }
+
+    private function viewerSession(): array
+    {
+        return [
+            'iris_logged_in' => true,
+            'iris_login_user' => 'taku',
+            'iris_login_role' => 'viewer',
+        ];
+    }
+
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get('/')
@@ -27,6 +45,24 @@ class ExampleTest extends TestCase
             ->assertRedirect(route('iris.index'));
 
         $this->assertTrue(session('iris_logged_in'));
+        $this->assertSame('admin', session('iris_login_role'));
+    }
+
+    public function test_login_accepts_viewer_credentials(): void
+    {
+        config([
+            'services.iris_login.viewer_user' => 'taku',
+            'services.iris_login.viewer_password' => 'taku1234',
+        ]);
+
+        $this->post('/login', [
+            'username' => 'taku',
+            'password' => 'taku1234',
+        ])
+            ->assertRedirect(route('iris.index'));
+
+        $this->assertTrue(session('iris_logged_in'));
+        $this->assertSame('viewer', session('iris_login_role'));
     }
 
     public function test_the_iris_console_returns_a_successful_response(): void
@@ -112,7 +148,7 @@ class ExampleTest extends TestCase
             '127.0.0.1:52773/test/api/register' => Http::response(['found' => true, 'message' => 'Registered'], 200),
         ]);
 
-        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
+        $response = $this->withSession($this->adminSession())->postJson('/iris-test/register', [
             'barcode' => '*000008',
             'name' => 'SAKURA',
             'kanji' => '桜',
@@ -152,7 +188,7 @@ class ExampleTest extends TestCase
             '127.0.0.1:52773/test/api/register' => Http::response(['message' => 'Registered'], 200),
         ]);
 
-        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
+        $response = $this->withSession($this->adminSession())->postJson('/iris-test/register', [
             'barcode' => '',
             'name' => 'KAKASHI',
             'kanji' => '案山子',
@@ -185,7 +221,7 @@ class ExampleTest extends TestCase
             '127.0.0.1:52773/test/api/search/000008' => Http::response(['found' => true], 200),
         ]);
 
-        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
+        $response = $this->withSession($this->adminSession())->postJson('/iris-test/register', [
             'barcode' => '000008',
             'name' => 'SAKURA',
             'kanji' => '桜',
@@ -214,7 +250,7 @@ class ExampleTest extends TestCase
 
         Http::fake();
 
-        $response = $this->withSession(['iris_logged_in' => true])->postJson('/iris-test/register', [
+        $response = $this->withSession($this->adminSession())->postJson('/iris-test/register', [
             'barcode' => '000010',
             'name' => 'NARUTO',
             'kanji' => 'NARUTO',
@@ -226,5 +262,63 @@ class ExampleTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('message', 'Kanji/Katakana check failed.')
             ->assertJsonValidationErrors(['kanji', 'katakana']);
+    }
+
+    public function test_admin_can_update_existing_record(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/register' => Http::response(['found' => true, 'message' => 'Registered'], 200),
+        ]);
+
+        $response = $this->withSession($this->adminSession())->postJson('/iris-test/update', [
+            'barcode' => '000008',
+            'name' => 'SAKURA EDIT',
+            'kanji' => '桜',
+            'katakana' => 'サクラ',
+            'address' => '大阪',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('request.barcode', '000008')
+            ->assertJsonPath('request.name', 'SAKURA EDIT');
+
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && $request->url() === 'http://127.0.0.1:52773/test/api/register'
+            && $request['barcode'] === '000008'
+            && $request['name'] === 'SAKURA EDIT');
+    }
+
+    public function test_viewer_cannot_register_or_update_records(): void
+    {
+        Http::fake();
+
+        $payload = [
+            'barcode' => '000008',
+            'name' => 'SAKURA',
+            'kanji' => '桜',
+            'katakana' => 'サクラ',
+            'address' => '大阪',
+        ];
+
+        $this->withSession($this->viewerSession())
+            ->postJson('/iris-test/register', $payload)
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Admin login is required to edit records.');
+
+        $this->withSession($this->viewerSession())
+            ->postJson('/iris-test/update', $payload)
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Admin login is required to edit records.');
+
+        Http::assertNothingSent();
     }
 }

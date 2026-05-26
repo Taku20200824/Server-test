@@ -23,6 +23,26 @@
     --shadow-lg: 0 40px 110px rgba(0, 0, 0, .16);
     --inner-light: inset 0 1px 0 rgba(255, 255, 255, .9);
     --inner-line: inset 0 0 0 1px rgba(255, 255, 255, .55);
+
+    /* Signature accent — iris violet/indigo */
+    --accent: #5a52e6;
+    --accent-hi: #7b74ff;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(90, 82, 230, .12);
+    --accent-line: rgba(90, 82, 230, .32);
+    --accent-glow: rgba(90, 82, 230, .42);
+    --accent-grad: linear-gradient(140deg, #6f67ff 0%, #5a52e6 52%, #4a8de0 100%);
+
+    /* Drifting aurora blobs behind the glass */
+    --aurora-1: rgba(99, 102, 241, .17);
+    --aurora-2: rgba(45, 212, 191, .12);
+    --aurora-3: rgba(168, 130, 255, .15);
+
+    /* Semantic tints */
+    --ok: #16a34a;
+    --ok-soft: rgba(22, 163, 74, .14);
+    --warn: #dc2626;
+    --warn-soft: rgba(220, 38, 38, .14);
 }
 
 :root[data-theme='dark'] {
@@ -39,6 +59,23 @@
     --shadow-lg: 0 40px 110px rgba(0, 0, 0, .46);
     --inner-light: inset 0 1px 0 rgba(255, 255, 255, .12);
     --inner-line: inset 0 0 0 1px rgba(255, 255, 255, .08);
+
+    --accent: #8b84ff;
+    --accent-hi: #a59fff;
+    --accent-ink: #0e0e16;
+    --accent-soft: rgba(139, 132, 255, .16);
+    --accent-line: rgba(139, 132, 255, .34);
+    --accent-glow: rgba(139, 132, 255, .5);
+    --accent-grad: linear-gradient(140deg, #9b94ff 0%, #8b84ff 52%, #6ab0ff 100%);
+
+    --aurora-1: rgba(123, 116, 255, .22);
+    --aurora-2: rgba(45, 212, 191, .12);
+    --aurora-3: rgba(196, 130, 255, .17);
+
+    --ok: #4ade80;
+    --ok-soft: rgba(74, 222, 128, .16);
+    --warn: #f87171;
+    --warn-soft: rgba(248, 113, 113, .16);
 }
 
 * {
@@ -59,6 +96,21 @@ body {
     background-size: 28px 28px, 28px 28px, auto, auto, auto;
     font-family: var(--font-sans);
     transition: background .42s ease, color .42s ease;
+}
+
+/* Drifting aurora layer — colored glow behind everything */
+body::after {
+    position: fixed;
+    inset: -22%;
+    z-index: -2;
+    background:
+        radial-gradient(38rem 38rem at 16% 20%, var(--aurora-1), transparent 60%),
+        radial-gradient(34rem 34rem at 84% 16%, var(--aurora-2), transparent 62%),
+        radial-gradient(42rem 42rem at 66% 90%, var(--aurora-3), transparent 60%);
+    filter: blur(18px) saturate(118%);
+    content: '';
+    pointer-events: none;
+    animation: aurora-drift 28s ease-in-out infinite alternate;
 }
 
 :root.is-theme-swapping body,
@@ -165,13 +217,15 @@ textarea:focus-visible {
 
 .header-meta button {
     cursor: pointer;
-    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, color .18s ease;
 }
 
 .header-meta button:hover {
     transform: translateY(-2px);
+    border-color: var(--accent-line);
     background: var(--glass-strong);
-    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
+    color: var(--accent);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
 }
 
 .workspace {
@@ -215,7 +269,8 @@ textarea:focus-visible {
         inset 0 1px 0 rgba(255, 255, 255, .95),
         inset 0 -28px 70px rgba(255, 255, 255, .26),
         0 24px 70px rgba(0, 0, 0, .1),
-        0 8px 22px rgba(255, 255, 255, .35);
+        0 8px 22px rgba(255, 255, 255, .35),
+        0 0 60px var(--accent-soft);
     backdrop-filter: blur(46px) saturate(145%);
     -webkit-backdrop-filter: blur(46px) saturate(145%);
     content: '';
@@ -245,8 +300,8 @@ textarea:focus-visible {
     position: absolute;
     right: 14px;
     top: -25px;
-    color: var(--ink);
-    opacity: .72;
+    color: var(--accent);
+    opacity: .85;
     content: 'searchbar';
     font-size: .66rem;
     font-weight: 820;
@@ -281,6 +336,13 @@ textarea:focus-visible {
     backdrop-filter: blur(24px) saturate(125%);
     font-weight: 720;
     text-align: center;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.iris-form > label:first-child input:focus {
+    border-color: var(--accent-line);
+    background: rgba(255, 255, 255, .96);
+    box-shadow: var(--inner-light), var(--inner-line), 0 0 0 5px var(--accent-soft), 0 14px 34px var(--accent-glow);
 }
 
 .iris-form > label:first-child input.is-scan-pulse {
@@ -301,10 +363,11 @@ textarea:focus-visible {
 }
 
 :root[data-theme='dark'] input:focus,
-:root[data-theme='dark'] textarea:focus {
-    border-color: rgba(255, 255, 255, .28);
+:root[data-theme='dark'] textarea:focus,
+:root[data-theme='dark'] .iris-form > label:first-child input:focus {
+    border-color: var(--accent-line);
     background: rgba(28, 28, 28, .86);
-    box-shadow: var(--inner-light), var(--inner-line), 0 0 0 5px rgba(255, 255, 255, .08), var(--shadow-sm);
+    box-shadow: var(--inner-light), var(--inner-line), 0 0 0 5px var(--accent-soft), 0 14px 34px var(--accent-glow);
 }
 
 .iris-form > .actions {
@@ -350,6 +413,20 @@ textarea:focus-visible {
     animation-delay: .1s;
 }
 
+/* Thin accent strip along the panel's top edge */
+.result-panel::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 2;
+    background: var(--accent-grad);
+    opacity: .9;
+    content: '';
+    pointer-events: none;
+}
+
 .result-panel.is-success-pulse {
     animation: result-success-pulse .86s ease-out both;
 }
@@ -386,7 +463,7 @@ textarea:focus-visible {
 
 .eyebrow {
     margin: 0 0 7px;
-    color: var(--muted);
+    color: var(--accent);
     font-size: .7rem;
     font-weight: 860;
     letter-spacing: .12em;
@@ -468,11 +545,12 @@ h3 {
 }
 
 .scanner-panel.is-scanning {
+    border-color: var(--accent-line);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, .9),
         inset 0 -22px 64px rgba(255, 255, 255, .2),
         0 24px 70px rgba(0, 0, 0, .1),
-        0 0 38px rgba(255, 255, 255, .36);
+        0 0 44px var(--accent-glow);
 }
 
 .scanner-panel.is-scan-pulse {
@@ -556,12 +634,12 @@ textarea {
 :root[data-theme='dark'] .scanner-panel input:focus,
 :root[data-theme='dark'] .register-fields textarea:focus,
 :root[data-theme='dark'] .scanner-panel textarea:focus {
-    border-color: rgba(255, 255, 255, .34);
+    border-color: var(--accent-line);
     background: rgba(20, 20, 20, .74);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, .12),
-        0 0 0 5px rgba(255, 255, 255, .07),
-        0 14px 34px rgba(0, 0, 0, .3);
+        0 0 0 5px var(--accent-soft),
+        0 14px 34px var(--accent-glow);
 }
 
 input {
@@ -576,9 +654,9 @@ textarea::placeholder {
 
 input:focus,
 textarea:focus {
-    border-color: rgba(0, 0, 0, .22);
+    border-color: var(--accent-line);
     background: rgba(255, 255, 255, .92);
-    box-shadow: var(--inner-light), var(--inner-line), 0 0 0 5px rgba(255, 255, 255, .42), var(--shadow-sm);
+    box-shadow: var(--inner-light), var(--inner-line), 0 0 0 5px var(--accent-soft), 0 12px 30px var(--accent-glow);
 }
 
 .scanner-head {
@@ -599,23 +677,28 @@ textarea:focus {
     font-weight: 820;
     text-align: center;
     white-space: nowrap;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
 
 :root[data-theme='dark'] .scanner-state,
-:root[data-theme='dark'] .scanner-state.is-live,
-:root[data-theme='dark'] .scanner-state.is-error,
 :root[data-theme='dark'] .camera-help,
 :root[data-theme='dark'] .result-row,
 :root[data-theme='dark'] .result-alert,
-:root[data-theme='dark'] .success-ribbon,
 :root[data-theme='dark'] .table-wrap {
     background: rgba(28, 28, 28, .62);
 }
 
-.scanner-state.is-live,
+.scanner-state.is-live {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 0 18px var(--accent-glow);
+}
+
 .scanner-state.is-error {
-    background: rgba(255, 255, 255, .82);
-    color: var(--ink);
+    border-color: var(--warn);
+    background: var(--warn-soft);
+    color: var(--warn);
 }
 
 .scanner-frame {
@@ -633,7 +716,7 @@ textarea:focus {
 }
 
 .scanner-panel.is-scanning .scanner-frame {
-    border-color: rgba(255, 255, 255, .42);
+    border-color: var(--accent-line);
     animation: camera-breathe 2.2s ease-in-out infinite;
 }
 
@@ -651,8 +734,8 @@ textarea:focus {
     top: 50%;
     height: 2px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, .9);
-    box-shadow: 0 0 18px rgba(255, 255, 255, .72), 0 0 42px rgba(255, 255, 255, .28);
+    background: linear-gradient(90deg, transparent, var(--accent-hi) 18%, var(--accent-hi) 82%, transparent);
+    box-shadow: 0 0 18px var(--accent-glow), 0 0 42px var(--accent-glow);
     animation: scan-pulse 1.9s ease-in-out infinite;
 }
 
@@ -691,6 +774,8 @@ textarea:focus {
 
 .button,
 .ghost-button {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -705,16 +790,13 @@ textarea:focus {
     font-size: .9rem;
     font-weight: 820;
     line-height: 1;
-    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
 }
 
 :root[data-theme='dark'] .header-meta span,
 :root[data-theme='dark'] .header-meta button,
 :root[data-theme='dark'] .button,
-:root[data-theme='dark'] .ghost-button,
-:root[data-theme='dark'] .button.primary,
-:root[data-theme='dark'] .button.success,
-:root[data-theme='dark'] .button.danger {
+:root[data-theme='dark'] .ghost-button {
     border-color: rgba(255, 255, 255, .12);
     background: linear-gradient(145deg, rgba(38, 38, 38, .82), rgba(18, 18, 18, .56));
     color: var(--ink);
@@ -731,11 +813,55 @@ textarea:focus {
     padding: 0 16px;
 }
 
-.button.primary,
-.button.success,
+/* Accent-tinted primary action */
+.button.primary {
+    border-color: transparent;
+    background: var(--accent-grad);
+    color: var(--accent-ink);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .3),
+        var(--shadow-sm),
+        0 10px 28px var(--accent-glow);
+}
+
+:root[data-theme='dark'] .button.primary {
+    border-color: transparent;
+    background: var(--accent-grad);
+    color: var(--accent-ink);
+}
+
+.button.primary:hover {
+    background: var(--accent-grad);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .35),
+        var(--shadow-md),
+        0 16px 40px var(--accent-glow);
+}
+
+.button.success {
+    border-color: transparent;
+    background: linear-gradient(145deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), var(--shadow-sm), 0 10px 28px var(--ok-soft);
+}
+
+:root[data-theme='dark'] .button.success {
+    border-color: transparent;
+    background: linear-gradient(145deg, #34d27e, #1fa85f);
+    color: #08120c;
+}
+
 .button.danger {
-    background: linear-gradient(145deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .58));
-    color: var(--ink);
+    border-color: transparent;
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), var(--shadow-sm), 0 10px 28px var(--warn-soft);
+}
+
+:root[data-theme='dark'] .button.danger {
+    border-color: transparent;
+    background: linear-gradient(145deg, #f87171, #e0473f);
+    color: #1a0707;
 }
 
 .button:hover,
@@ -777,6 +903,7 @@ textarea:focus {
 .empty-state.is-loading {
     font-size: .76rem;
     letter-spacing: .12em;
+    color: var(--accent);
 }
 
 .empty-state::after {
@@ -813,6 +940,7 @@ textarea:focus {
 }
 
 .result-row {
+    position: relative;
     display: grid;
     grid-template-columns: 122px 1fr;
     align-items: center;
@@ -824,13 +952,35 @@ textarea:focus {
     background: rgba(255, 255, 255, .62);
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
     backdrop-filter: blur(18px);
-    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+}
+
+/* Accent bar slides in on hover */
+.result-row::before {
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 0;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--accent-grad);
+    content: '';
+    opacity: 0;
+    transform: scaleY(.3);
+    transform-origin: center;
+    transition: opacity .18s ease, transform .18s ease;
 }
 
 .result-row:hover {
     transform: translateY(-2px);
+    border-color: var(--accent-line);
     background: rgba(255, 255, 255, .78);
-    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
+}
+
+.result-row:hover::before {
+    opacity: 1;
+    transform: scaleY(1);
 }
 
 .result-label {
@@ -860,20 +1010,16 @@ textarea:focus {
 .result-mode-badge {
     width: fit-content;
     padding: 7px 12px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--accent-line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .56);
-    color: var(--muted);
+    background: var(--accent-soft);
+    color: var(--accent);
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
     backdrop-filter: blur(20px) saturate(125%);
     font-size: .72rem;
     font-weight: 820;
     letter-spacing: .08em;
     text-transform: uppercase;
-}
-
-:root[data-theme='dark'] .result-mode-badge {
-    background: rgba(28, 28, 28, .62);
 }
 
 .register-success {
@@ -884,14 +1030,18 @@ textarea:focus {
 .success-ribbon {
     width: fit-content;
     padding: 8px 14px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--accent-line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .76);
-    color: var(--ink);
-    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm), 0 0 22px var(--accent-glow);
     font-size: .78rem;
     font-weight: 820;
     animation: pop-in .4s cubic-bezier(.2, .82, .2, 1) both, ribbon-pulse 1.2s ease .25s 1;
+}
+
+:root[data-theme='dark'] .success-ribbon {
+    background: var(--accent-soft);
 }
 
 .table-wrap {
@@ -946,7 +1096,7 @@ textarea:focus {
 }
 
 :root[data-theme='dark'] .records-table tbody tr:hover td {
-    background: rgba(255, 255, 255, .08);
+    background: var(--accent-soft);
 }
 
 .records-table td {
@@ -969,8 +1119,26 @@ textarea:focus {
     animation-delay: var(--reveal-delay, 0ms);
 }
 
+.records-table tbody tr td {
+    transition: background .16s ease;
+}
+
+.records-table tbody tr.is-editable,
+.result-grid.is-editable {
+    cursor: pointer;
+}
+
+.records-table tbody tr.is-editable:hover td,
+.result-grid.is-editable:hover .result-row {
+    background: var(--accent-soft);
+}
+
+.records-table tbody tr.is-editable:hover {
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
 .records-table tbody tr:hover td {
-    background: rgba(255, 255, 255, .68);
+    background: var(--accent-soft);
 }
 
 .records-table tr:last-child td {
@@ -999,9 +1167,19 @@ textarea:focus {
     cursor: pointer;
     font-size: .78rem;
     font-weight: 760;
+    transition: transform .18s ease, box-shadow .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.theme-float:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-line);
+    color: var(--accent);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
 }
 
 .login-card {
+    position: relative;
+    overflow: hidden;
     width: min(100%, 440px);
     padding: 34px;
     border: 1px solid rgba(0, 0, 0, .1);
@@ -1010,6 +1188,17 @@ textarea:focus {
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-lg);
     backdrop-filter: blur(36px) saturate(125%);
     animation: panel-in .5s cubic-bezier(.2, .82, .2, 1) both;
+}
+
+.login-card::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent-grad);
+    content: '';
+    pointer-events: none;
 }
 
 .login-card h1 {
@@ -1243,13 +1432,14 @@ textarea:focus {
         background: rgba(255, 255, 255, .58);
         box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
         backdrop-filter: blur(22px) saturate(125%);
-        transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+        transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
     }
 
     .records-table tbody tr:hover {
         transform: translateY(-2px);
+        border-color: var(--accent-line);
         background: rgba(255, 255, 255, .72);
-        box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
+        box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
     }
 
     :root[data-theme='dark'] .records-table tbody tr {
@@ -1376,6 +1566,20 @@ textarea:focus {
     }
 }
 
+@keyframes aurora-drift {
+    0% {
+        transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    }
+
+    50% {
+        transform: translate3d(2.5%, -2%, 0) scale(1.08) rotate(8deg);
+    }
+
+    100% {
+        transform: translate3d(-2.5%, 2.5%, 0) scale(1.04) rotate(-6deg);
+    }
+}
+
 @keyframes result-success-pulse {
     0% {
         box-shadow:
@@ -1390,7 +1594,7 @@ textarea:focus {
             inset 0 1px 0 rgba(255, 255, 255, 1),
             inset 0 -34px 90px rgba(255, 255, 255, .28),
             0 40px 110px rgba(0, 0, 0, .14),
-            0 0 54px rgba(255, 255, 255, .54);
+            0 0 64px var(--accent-glow);
     }
 
     100% {
@@ -1433,11 +1637,11 @@ textarea:focus {
 @keyframes camera-breathe {
     0%,
     100% {
-        box-shadow: inset 0 0 42px rgba(0, 0, 0, .34), 0 0 18px rgba(255, 255, 255, .12);
+        box-shadow: inset 0 0 42px rgba(0, 0, 0, .34), 0 0 18px var(--accent-soft);
     }
 
     50% {
-        box-shadow: inset 0 0 46px rgba(0, 0, 0, .3), 0 0 42px rgba(255, 255, 255, .24);
+        box-shadow: inset 0 0 46px rgba(0, 0, 0, .3), 0 0 42px var(--accent-glow);
     }
 }
 

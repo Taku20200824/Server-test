@@ -14,6 +14,9 @@ class IrisTestController extends Controller
     {
         return view('welcome', [
             'irisUrl' => $this->maskedBaseUrl(),
+            'isAdmin' => $this->isAdmin($request),
+            'loginUser' => $request->session()->get('iris_login_user', ''),
+            'loginRole' => $request->session()->get('iris_login_role', 'viewer'),
         ]);
     }
 
@@ -41,6 +44,10 @@ class IrisTestController extends Controller
 
     public function register(Request $request)
     {
+        if (! $this->isAdmin($request)) {
+            return $this->adminOnlyResponse();
+        }
+
         $validated = $request->validate([
             'barcode' => ['nullable', 'string', 'max:80'],
             'name' => ['required', 'string', 'max:120'],
@@ -106,21 +113,76 @@ class IrisTestController extends Controller
         return $this->callIris('/api/register', $payload, 'post');
     }
 
+    public function update(Request $request)
+    {
+        if (! $this->isAdmin($request)) {
+            return $this->adminOnlyResponse();
+        }
+
+        $validated = $request->validate([
+            'barcode' => ['required', 'string', 'max:80'],
+            'name' => ['required', 'string', 'max:120'],
+            'kanji' => ['nullable', 'string', 'max:120'],
+            'katakana' => ['nullable', 'string', 'max:120'],
+            'address' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $barcode = $this->cleanBarcode($validated['barcode']);
+
+        if ($barcode === '') {
+            return response()->json([
+                'message' => 'Barcode is required for edit.',
+                'errors' => [
+                    'barcode' => ['Barcode is required for edit.'],
+                ],
+            ], 422);
+        }
+
+        $fieldErrors = $this->validateNameScripts($validated);
+
+        if ($fieldErrors !== []) {
+            return response()->json([
+                'message' => 'Kanji/Katakana check failed.',
+                'errors' => $fieldErrors,
+            ], 422);
+        }
+
+        return $this->callIris('/api/register', [
+            'barcode' => $barcode,
+            'name' => $validated['name'],
+            'kanji' => $validated['kanji'] ?? '',
+            'katakana' => $validated['katakana'] ?? '',
+            'address' => $validated['address'] ?? '',
+        ], 'post');
+    }
+
     private function validateNameScripts(array $validated): array
     {
         $errors = [];
         $kanji = trim((string) ($validated['kanji'] ?? ''));
         $katakana = trim((string) ($validated['katakana'] ?? ''));
 
-        if ($kanji !== '' && ! preg_match('/^[\p{Han}\p{Hiragana}々〆〇ヶー\s　]+$/u', $kanji)) {
+        if ($kanji !== '' && ! preg_match('/^[\p{Han}\p{Hiragana}\p{Katakana}\x{30FC}\s　]+$/u', $kanji)) {
             $errors['kanji'] = ['Kanji must use kanji or hiragana characters.'];
         }
 
-        if ($katakana !== '' && ! preg_match('/^[\p{Katakana}\x{FF66}-\x{FF9F}ーｰ・･ヽヾ\s　]+$/u', $katakana)) {
+        if ($katakana !== '' && ! preg_match('/^[\p{Katakana}\x{FF66}-\x{FF9F}\x{30FC}\x{30FB}\s　]+$/u', $katakana)) {
             $errors['katakana'] = ['Katakana must use katakana characters.'];
         }
 
         return $errors;
+    }
+
+    private function isAdmin(Request $request): bool
+    {
+        return $request->session()->get('iris_login_role') === 'admin';
+    }
+
+    private function adminOnlyResponse()
+    {
+        return response()->json([
+            'message' => 'Admin login is required to edit records.',
+        ], 403);
     }
 
     private function barcodeExists(string $barcode): bool

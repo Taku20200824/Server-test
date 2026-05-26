@@ -22,10 +22,20 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = (string) config('services.iris_login.user');
-        $password = (string) config('services.iris_login.password');
+        $users = [
+            (string) config('services.iris_login.user') => [
+                'password' => (string) config('services.iris_login.password'),
+                'role' => 'admin',
+            ],
+            (string) config('services.iris_login.viewer_user') => [
+                'password' => (string) config('services.iris_login.viewer_password'),
+                'role' => 'viewer',
+            ],
+        ];
 
-        if (! hash_equals($user, $credentials['username']) || ! hash_equals($password, $credentials['password'])) {
+        $account = $users[$credentials['username']] ?? null;
+
+        if ($account === null || ! hash_equals($account['password'], $credentials['password'])) {
             return back()
                 ->withInput($request->only('username'))
                 ->withErrors(['username' => 'Username or password is incorrect.']);
@@ -34,6 +44,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $request->session()->put('iris_logged_in', true);
         $request->session()->put('iris_login_user', $credentials['username']);
+        $request->session()->put('iris_login_role', $account['role']);
 
         return redirect()->intended(route('iris.index'));
     }

@@ -16,4 +16,5 @@ Route::middleware([EnsureIrisAuthenticated::class])->group(function () {
     Route::get('/iris-test/ping', [IrisTestController::class, 'ping'])->name('iris.ping');
     Route::post('/iris-test/search', [IrisTestController::class, 'search'])->name('iris.search');
     Route::post('/iris-test/register', [IrisTestController::class, 'register'])->name('iris.register');
+    Route::post('/iris-test/update', [IrisTestController::class, 'update'])->name('iris.update');
 });

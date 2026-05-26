@@ -18,6 +18,8 @@ const cameraToggle = document.querySelector('[data-camera-toggle]');
 const scannerPanel = document.querySelector('[data-scanner-panel]');
 const themeToggle = document.querySelector('[data-theme-toggle]');
 const resultPanel = document.querySelector('.result-panel');
+const saveRecordButton = form?.querySelector('[data-save-record]');
+const canEdit = document.querySelector('meta[name="iris-can-edit"]')?.content === '1';
 
 const codeReader = new BrowserMultiFormatReader();
 let scannerControls = null;
@@ -25,6 +27,7 @@ let scannerControls = null;
 const routes = {
     search: '/iris-test/search',
     register: '/iris-test/register',
+    update: '/iris-test/update',
     ping: '/iris-test/ping',
 };
 
@@ -56,6 +59,16 @@ function escapeHtml(value) {
         '"': '&quot;',
         "'": '&#039;',
     })[char]);
+}
+
+function recordToDataset(record) {
+    return [
+        ['barcode', record.barcode],
+        ['name', record.name],
+        ['kanji', record.kanji],
+        ['katakana', record.katakana],
+        ['address', record.address],
+    ].map(([key, value]) => `data-${key}="${escapeHtml(value)}"`).join(' ');
 }
 
 function pulseElement(element, className = 'is-pulsing') {
@@ -94,17 +107,17 @@ function showBarcodeResult(payload) {
         return;
     }
 
-    if (payload?.action === 'register' && payload.ok) {
+    if ((payload?.action === 'register' || payload?.action === 'update') && payload.ok) {
         const registered = {
             barcode: request.barcode ?? data.barcode,
             name: request.name ?? data.name,
             kanji: request.kanji ?? data.kanji,
             katakana: request.katakana ?? data.katakana,
             address: request.address ?? data.address,
-            message: data.message ?? 'Registered',
+            message: payload.action === 'update' ? 'Updated' : (data.message ?? 'Registered'),
         };
 
-        showRegisterResult(registered);
+        showRegisterResult(registered, payload.action);
         collapseRegisterPanel();
         pulseElement(resultPanel, 'is-success-pulse');
         vibrate([35, 35, 55]);
@@ -129,7 +142,10 @@ function showBarcodeResult(payload) {
         ['Added DateTime', data.addedDateTime],
     ];
 
-    barcodeResult.innerHTML = `<div class="result-grid">${rows.map(([label, value], index) => `
+    const editAttrs = canEdit ? ` data-edit-record ${recordToDataset(data)}` : '';
+    const editClass = canEdit ? ' is-editable' : '';
+
+    barcodeResult.innerHTML = `<div class="result-grid${editClass}"${editAttrs}>${rows.map(([label, value], index) => `
         <div class="result-row reveal-item" style="--reveal-delay: ${index * 55}ms">
             <div class="result-label">${escapeHtml(label)}</div>
             <div class="result-value">${escapeHtml(value)}</div>
@@ -145,7 +161,7 @@ function showLoadingResult(message = 'Loading data') {
     armResultReveal();
 }
 
-function showRegisterResult(data) {
+function showRegisterResult(data, action = 'register') {
     const rows = [
         ['Status', data.message],
         ['Barcode', data.barcode],
@@ -156,7 +172,7 @@ function showRegisterResult(data) {
     ];
 
     barcodeResult.innerHTML = `<div class="register-success">
-        <div class="success-ribbon">Registered</div>
+        <div class="success-ribbon">${action === 'update' ? 'Updated' : 'Registered'}</div>
         <div class="result-grid">${rows.map(([label, value], index) => `
             <div class="result-row reveal-item" style="--reveal-delay: ${index * 70}ms">
                 <div class="result-label">${escapeHtml(label)}</div>
@@ -194,7 +210,7 @@ function showRecordTable(records, limit = null, label = 'All records') {
             </thead>
             <tbody>
                 ${visibleRecords.map((record, index) => `
-                    <tr class="reveal-row" style="--reveal-delay: ${Math.min(index * 35, 420)}ms">
+                    <tr class="reveal-row${canEdit ? ' is-editable' : ''}" ${canEdit ? `data-edit-record ${recordToDataset(record)}` : ''} style="--reveal-delay: ${Math.min(index * 35, 420)}ms">
                         <td data-label="No">${escapeHtml(record.no)}</td>
                         <td data-label="Barcode">${escapeHtml(record.barcode)}</td>
                         <td data-label="Name">${escapeHtml(record.name)}</td>
@@ -314,9 +330,40 @@ function isPanelCollapsed(panel) {
     return panel?.classList.contains('is-collapsed');
 }
 
-function expandRegisterPanel() {
+function setRegisterMode() {
+    if (!saveRecordButton) {
+        return;
+    }
+
+    saveRecordButton.dataset.action = 'register';
+    saveRecordButton.textContent = 'Save';
+    saveRecordButton.classList.add('success');
+}
+
+function setEditMode(record) {
+    if (!canEdit || !form) {
+        return;
+    }
+
+    form.querySelector('input[name="barcode"]').value = record.barcode ?? '';
+    form.querySelector('input[name="name"]').value = record.name ?? '';
+    form.querySelector('input[name="kanji"]').value = record.kanji ?? '';
+    form.querySelector('input[name="katakana"]').value = record.katakana ?? '';
+    form.querySelector('input[name="address"]').value = record.address ?? '';
+
+    if (saveRecordButton) {
+        saveRecordButton.dataset.action = 'update';
+        saveRecordButton.textContent = 'Update';
+        saveRecordButton.classList.add('success');
+    }
+
+    expandRegisterPanel('Edit');
+    pulseElement(registerPanel, 'is-success-pulse');
+}
+
+function expandRegisterPanel(status = 'Register') {
     expandPanel(registerPanel);
-    setStatus('Register');
+    setStatus(status);
     window.setTimeout(() => {
         registerPanel?.querySelector('input[name="name"]')?.focus();
     }, 280);
@@ -328,6 +375,7 @@ function collapseRegisterPanel() {
 
 function toggleRegisterPanel() {
     if (isPanelCollapsed(registerPanel)) {
+        setRegisterMode();
         expandRegisterPanel();
         return;
     }
@@ -425,8 +473,8 @@ form?.addEventListener('submit', (event) => {
 
     event.submitter.disabled = true;
     setStatus('Sending');
-    form?.classList.toggle('is-searching', action === 'search' || action === 'register');
-    showLoadingResult(action === 'register' ? 'Saving data' : 'Loading data');
+    form?.classList.toggle('is-searching', action === 'search' || action === 'register' || action === 'update');
+    showLoadingResult(action === 'register' || action === 'update' ? 'Saving data' : 'Loading data');
 
     sendRequest(action, event.submitter).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
@@ -453,6 +501,22 @@ cameraToggle?.addEventListener('click', () => {
 
 registerToggle?.addEventListener('click', () => {
     toggleRegisterPanel();
+});
+
+barcodeResult?.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-edit-record]');
+
+    if (!target || !canEdit) {
+        return;
+    }
+
+    setEditMode({
+        barcode: target.dataset.barcode,
+        name: target.dataset.name,
+        kanji: target.dataset.kanji,
+        katakana: target.dataset.katakana,
+        address: target.dataset.address,
+    });
 });
 
 themeToggle?.addEventListener('click', () => {
@@ -539,6 +603,7 @@ cameraStop?.addEventListener('click', stopScanner);
 
 clearButton?.addEventListener('click', () => {
     form?.reset();
+    setRegisterMode();
     collapseRegisterPanel();
     collapsePanel(scannerPanel);
     scannerPanel?.classList.remove('is-scanning');

@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="iris-can-edit" content="{{ $isAdmin ? '1' : '0' }}">
 
         <title>IRIS Console</title>
         <script>
@@ -36,6 +37,7 @@
                     <h1></h1>
                 </div>
                 <div class="header-meta">
+                    <span>{{ $loginUser }} · {{ $isAdmin ? 'Admin' : 'Viewer' }}</span>
                     <button type="button" data-theme-toggle>Dark mode</button>
                     <button type="button" data-camera-toggle>Camera scan</button>
                     <form method="POST" action="{{ route('logout') }}">
@@ -73,7 +75,7 @@
                                 <input name="address" autocomplete="street-address" placeholder="大阪" maxlength="255">
                             </label>
                             <div class="panel-actions">
-                                <button class="button success" type="submit" data-action="register">
+                                <button class="button success" type="submit" data-action="register" data-save-record>
                                     Save
                                 </button>
                             </div>
@@ -107,9 +109,11 @@
                             <button class="button primary" type="submit" data-action="search">
                                 Search
                             </button>
+                            @if ($isAdmin)
                             <button class="button success" type="button" data-register-toggle>
                                 Register
                             </button>
+                            @endif
                             <button class="button" type="button" data-clear>
                                 Clear
                             </button>
