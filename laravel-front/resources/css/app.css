@@ -871,6 +871,28 @@ textarea:focus {
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
 }
 
+.button.success:hover {
+    background: linear-gradient(145deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), var(--shadow-md), 0 16px 36px var(--ok-soft);
+}
+
+.button.danger:hover {
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), var(--shadow-md), 0 16px 36px var(--warn-soft);
+}
+
+:root[data-theme='dark'] .button.success:hover {
+    background: linear-gradient(145deg, #34d27e, #1fa85f);
+    color: #08120c;
+}
+
+:root[data-theme='dark'] .button.danger:hover {
+    background: linear-gradient(145deg, #f87171, #e0473f);
+    color: #1a0707;
+}
+
 .button:active,
 .ghost-button:active {
     transform: translateY(0) scale(.98);

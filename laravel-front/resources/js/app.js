@@ -19,6 +19,7 @@ const scannerPanel = document.querySelector('[data-scanner-panel]');
 const themeToggle = document.querySelector('[data-theme-toggle]');
 const resultPanel = document.querySelector('.result-panel');
 const saveRecordButton = form?.querySelector('[data-save-record]');
+const deleteRecordButton = form?.querySelector('[data-delete-record]');
 const canEdit = document.querySelector('meta[name="iris-can-edit"]')?.content === '1';
 
 const codeReader = new BrowserMultiFormatReader();
@@ -28,6 +29,7 @@ const routes = {
     search: '/iris-test/search',
     register: '/iris-test/register',
     update: '/iris-test/update',
+    delete: '/iris-test/delete',
     ping: '/iris-test/ping',
 };
 
@@ -118,6 +120,30 @@ function showBarcodeResult(payload) {
         };
 
         showRegisterResult(registered, payload.action);
+        collapseRegisterPanel();
+        pulseElement(resultPanel, 'is-success-pulse');
+        vibrate([35, 35, 55]);
+        scrollResultIntoView();
+        return;
+    }
+
+    if (payload?.action === 'delete' && payload.ok) {
+        barcodeResult.innerHTML = `<div class="register-success">
+            <div class="success-ribbon">Deleted</div>
+            <div class="result-grid">
+                <div class="result-row reveal-item">
+                    <div class="result-label">Barcode</div>
+                    <div class="result-value">${escapeHtml(request.barcode ?? data.barcode)}</div>
+                </div>
+                <div class="result-row reveal-item" style="--reveal-delay: 70ms">
+                    <div class="result-label">Status</div>
+                    <div class="result-value">${escapeHtml(data.message ?? 'Deleted')}</div>
+                </div>
+            </div>
+        </div>`;
+        armResultReveal();
+        form?.reset();
+        setRegisterMode();
         collapseRegisterPanel();
         pulseElement(resultPanel, 'is-success-pulse');
         vibrate([35, 35, 55]);
@@ -338,6 +364,10 @@ function setRegisterMode() {
     saveRecordButton.dataset.action = 'register';
     saveRecordButton.textContent = 'Save';
     saveRecordButton.classList.add('success');
+
+    if (deleteRecordButton) {
+        deleteRecordButton.hidden = true;
+    }
 }
 
 function setEditMode(record) {
@@ -355,6 +385,10 @@ function setEditMode(record) {
         saveRecordButton.dataset.action = 'update';
         saveRecordButton.textContent = 'Update';
         saveRecordButton.classList.add('success');
+    }
+
+    if (deleteRecordButton) {
+        deleteRecordButton.hidden = false;
     }
 
     expandRegisterPanel('Edit');
@@ -474,7 +508,10 @@ form?.addEventListener('submit', (event) => {
     event.submitter.disabled = true;
     setStatus('Sending');
     form?.classList.toggle('is-searching', action === 'search' || action === 'register' || action === 'update');
-    showLoadingResult(action === 'register' || action === 'update' ? 'Saving data' : 'Loading data');
+
+    if (action === 'search') {
+        showLoadingResult('Loading data');
+    }
 
     sendRequest(action, event.submitter).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
@@ -501,6 +538,28 @@ cameraToggle?.addEventListener('click', () => {
 
 registerToggle?.addEventListener('click', () => {
     toggleRegisterPanel();
+});
+
+deleteRecordButton?.addEventListener('click', () => {
+    const barcode = cleanBarcode(barcodeInput?.value);
+
+    if (!barcode || !canEdit) {
+        return;
+    }
+
+    if (!window.confirm(`Delete barcode ${barcode}?`)) {
+        return;
+    }
+
+    deleteRecordButton.disabled = true;
+    setStatus('Deleting');
+
+    sendRequest('delete', deleteRecordButton).catch((error) => {
+        barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
+        setStatus('Error', true);
+        deleteRecordButton.disabled = false;
+        form?.classList.remove('is-searching');
+    });
 });
 
 barcodeResult?.addEventListener('click', (event) => {

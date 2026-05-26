@@ -17,4 +17,5 @@ Route::middleware([EnsureIrisAuthenticated::class])->group(function () {
     Route::post('/iris-test/search', [IrisTestController::class, 'search'])->name('iris.search');
     Route::post('/iris-test/register', [IrisTestController::class, 'register'])->name('iris.register');
     Route::post('/iris-test/update', [IrisTestController::class, 'update'])->name('iris.update');
+    Route::post('/iris-test/delete', [IrisTestController::class, 'delete'])->name('iris.delete');
 });

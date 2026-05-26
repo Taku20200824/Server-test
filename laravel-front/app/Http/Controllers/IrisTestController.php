@@ -156,6 +156,32 @@ class IrisTestController extends Controller
         ], 'post');
     }
 
+    public function delete(Request $request)
+    {
+        if (! $this->isAdmin($request)) {
+            return $this->adminOnlyResponse();
+        }
+
+        $validated = $request->validate([
+            'barcode' => ['required', 'string', 'max:80'],
+        ]);
+
+        $barcode = $this->cleanBarcode($validated['barcode']);
+
+        if ($barcode === '') {
+            return response()->json([
+                'message' => 'Barcode is required for delete.',
+                'errors' => [
+                    'barcode' => ['Barcode is required for delete.'],
+                ],
+            ], 422);
+        }
+
+        return $this->callIris('/api/delete', [
+            'barcode' => $barcode,
+        ], 'post');
+    }
+
     private function validateNameScripts(array $validated): array
     {
         $errors = [];

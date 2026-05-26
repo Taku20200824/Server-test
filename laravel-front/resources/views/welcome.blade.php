@@ -75,6 +75,11 @@
                                 <input name="address" autocomplete="street-address" placeholder="大阪" maxlength="255">
                             </label>
                             <div class="panel-actions">
+                                @if ($isAdmin)
+                                <button class="button danger" type="button" data-delete-record hidden>
+                                    Delete
+                                </button>
+                                @endif
                                 <button class="button success" type="submit" data-action="register" data-save-record>
                                     Save
                                 </button>

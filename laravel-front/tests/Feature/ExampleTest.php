@@ -297,7 +297,35 @@ class ExampleTest extends TestCase
             && $request['name'] === 'SAKURA EDIT');
     }
 
-    public function test_viewer_cannot_register_or_update_records(): void
+    public function test_admin_can_delete_existing_record(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/delete' => Http::response(['deleted' => true, 'message' => 'Deleted'], 200),
+        ]);
+
+        $response = $this->withSession($this->adminSession())->postJson('/iris-test/delete', [
+            'barcode' => '000008',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('request.barcode', '000008')
+            ->assertJsonPath('data.message', 'Deleted');
+
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && $request->url() === 'http://127.0.0.1:52773/test/api/delete'
+            && $request['barcode'] === '000008');
+    }
+
+    public function test_viewer_cannot_register_update_or_delete_records(): void
     {
         Http::fake();
 
@@ -316,6 +344,11 @@ class ExampleTest extends TestCase
 
         $this->withSession($this->viewerSession())
             ->postJson('/iris-test/update', $payload)
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Admin login is required to edit records.');
+
+        $this->withSession($this->viewerSession())
+            ->postJson('/iris-test/delete', ['barcode' => '000008'])
             ->assertStatus(403)
             ->assertJsonPath('message', 'Admin login is required to edit records.');
 
