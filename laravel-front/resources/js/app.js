@@ -17,6 +17,7 @@ const cameraStop = document.querySelector('[data-camera-stop]');
 const cameraToggle = document.querySelector('[data-camera-toggle]');
 const scannerPanel = document.querySelector('[data-scanner-panel]');
 const themeToggle = document.querySelector('[data-theme-toggle]');
+const resultPanel = document.querySelector('.result-panel');
 
 const codeReader = new BrowserMultiFormatReader();
 let scannerControls = null;
@@ -32,12 +33,17 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? 
 function setTheme(theme) {
     const nextTheme = theme === 'dark' ? 'dark' : 'light';
 
+    document.documentElement.classList.add('is-theme-swapping');
     document.documentElement.dataset.theme = nextTheme;
     localStorage.setItem('iris-theme', nextTheme);
 
     if (themeToggle) {
         themeToggle.textContent = nextTheme === 'dark' ? 'White mode' : 'Dark mode';
     }
+
+    window.setTimeout(() => {
+        document.documentElement.classList.remove('is-theme-swapping');
+    }, 420);
 }
 
 setTheme(localStorage.getItem('iris-theme') || document.documentElement.dataset.theme || 'light');
@@ -52,12 +58,29 @@ function escapeHtml(value) {
     })[char]);
 }
 
+function pulseElement(element, className = 'is-pulsing') {
+    if (!element) {
+        return;
+    }
+
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+    window.setTimeout(() => element.classList.remove(className), 900);
+}
+
+function vibrate(pattern = 55) {
+    if ('vibrate' in navigator) {
+        navigator.vibrate(pattern);
+    }
+}
+
 function showBarcodeResult(payload) {
     const data = payload?.body?.data;
     const request = payload?.body?.request ?? {};
 
     if (Array.isArray(data?.records)) {
-        showRecordTable(data.records);
+        showRecordTable(data.records, null, 'All records');
         scrollResultIntoView();
         return;
     }
@@ -83,6 +106,8 @@ function showBarcodeResult(payload) {
 
         showRegisterResult(registered);
         collapseRegisterPanel();
+        pulseElement(resultPanel, 'is-success-pulse');
+        vibrate([35, 35, 55]);
         scrollResultIntoView();
         return;
     }
@@ -111,6 +136,7 @@ function showBarcodeResult(payload) {
         </div>
     `).join('')}</div>`;
     armResultReveal();
+    pulseElement(resultPanel, 'is-success-pulse');
     scrollResultIntoView();
 }
 
@@ -141,7 +167,7 @@ function showRegisterResult(data) {
     armResultReveal();
 }
 
-function showRecordTable(records, limit = null) {
+function showRecordTable(records, limit = null, label = 'All records') {
     const visibleRecords = Number.isInteger(limit) ? records.slice(0, limit) : records;
 
     if (visibleRecords.length === 0) {
@@ -150,7 +176,10 @@ function showRecordTable(records, limit = null) {
         return;
     }
 
-    barcodeResult.innerHTML = `<div class="table-wrap">
+    const tableLabel = Number.isInteger(limit) ? `${visibleRecords.length} recent records` : `${label}: ${visibleRecords.length}`;
+
+    barcodeResult.innerHTML = `<div class="result-mode-badge reveal-item">${escapeHtml(tableLabel)}</div>
+    <div class="table-wrap">
         <table class="records-table">
             <thead>
                 <tr>
@@ -200,7 +229,7 @@ async function loadInitialRecords() {
         const records = body?.data?.records;
 
         if (response.ok && Array.isArray(records)) {
-            showRecordTable(records, 5);
+            showRecordTable(records, 5, 'recent records');
             return;
         }
     } catch (error) {
@@ -382,6 +411,7 @@ async function sendRequest(action, trigger) {
 
     setStatus(response.ok ? 'Done' : 'Error', !response.ok);
     trigger.disabled = false;
+    form?.classList.remove('is-searching');
 }
 
 form?.addEventListener('submit', (event) => {
@@ -395,12 +425,14 @@ form?.addEventListener('submit', (event) => {
 
     event.submitter.disabled = true;
     setStatus('Sending');
+    form?.classList.toggle('is-searching', action === 'search' || action === 'register');
     showLoadingResult(action === 'register' ? 'Saving data' : 'Loading data');
 
     sendRequest(action, event.submitter).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
         setStatus('Error', true);
         event.submitter.disabled = false;
+        form?.classList.remove('is-searching');
     });
 });
 
@@ -440,6 +472,7 @@ async function stopScanner() {
 
     cameraStart.disabled = false;
     cameraStop.disabled = true;
+    scannerPanel?.classList.remove('is-scanning');
     setScannerStatus('Stopped');
 }
 
@@ -469,6 +502,7 @@ async function startScanner() {
 
     cameraStart.disabled = true;
     cameraStop.disabled = false;
+    scannerPanel?.classList.add('is-scanning');
     setScannerStatus('Scanning', 'live');
     cameraNote.textContent = 'Point the camera at a barcode.';
     cameraHelp.hidden = true;
@@ -484,6 +518,9 @@ async function startScanner() {
             barcodeInput.value = barcode;
             cameraNote.textContent = `Scanned ${barcode}`;
             setScannerStatus('Found', 'live');
+            pulseElement(barcodeInput, 'is-scan-pulse');
+            pulseElement(scannerPanel, 'is-scan-pulse');
+            vibrate(80);
             stopScanner();
             searchButton?.click();
         });
@@ -491,6 +528,7 @@ async function startScanner() {
         cameraNote.textContent = error.message;
         showCameraHelp('If Chrome did not ask for permission, open Site settings for this address and set Camera to Allow.');
         setScannerStatus('Error', 'error');
+        scannerPanel?.classList.remove('is-scanning');
         cameraStart.disabled = false;
         cameraStop.disabled = true;
     }
@@ -503,6 +541,7 @@ clearButton?.addEventListener('click', () => {
     form?.reset();
     collapseRegisterPanel();
     collapsePanel(scannerPanel);
+    scannerPanel?.classList.remove('is-scanning');
     barcodeResult.innerHTML = '<p class="empty-state">No data</p>';
     setStatus('Ready');
     barcodeInput?.focus();

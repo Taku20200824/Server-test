@@ -58,6 +58,17 @@ body {
         var(--bg);
     background-size: 28px 28px, 28px 28px, auto, auto, auto;
     font-family: var(--font-sans);
+    transition: background .42s ease, color .42s ease;
+}
+
+:root.is-theme-swapping body,
+:root.is-theme-swapping .result-panel,
+:root.is-theme-swapping .iris-form::before,
+:root.is-theme-swapping .register-fields,
+:root.is-theme-swapping .scanner-panel,
+:root.is-theme-swapping .button,
+:root.is-theme-swapping input {
+    transition-duration: .42s;
 }
 
 :root[data-theme='dark'] body {
@@ -244,6 +255,22 @@ textarea:focus-visible {
     pointer-events: none;
 }
 
+.iris-form > label:first-child::before {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: 22px;
+    background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, .72) 46%, transparent 68%);
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-120%);
+}
+
+.iris-form.is-searching > label:first-child::before {
+    animation: search-shimmer 1.05s ease-in-out infinite;
+}
+
 .iris-form > label:first-child input {
     height: 48px;
     border: 1px solid rgba(0, 0, 0, .12);
@@ -254,6 +281,10 @@ textarea:focus-visible {
     backdrop-filter: blur(24px) saturate(125%);
     font-weight: 720;
     text-align: center;
+}
+
+.iris-form > label:first-child input.is-scan-pulse {
+    animation: scan-found-pulse .86s ease-out both;
 }
 
 :root[data-theme='dark'] input,
@@ -317,6 +348,10 @@ textarea:focus-visible {
     -webkit-backdrop-filter: blur(48px) saturate(145%);
     animation: panel-in .5s cubic-bezier(.2, .82, .2, 1) both;
     animation-delay: .1s;
+}
+
+.result-panel.is-success-pulse {
+    animation: result-success-pulse .86s ease-out both;
 }
 
 .result-panel::before {
@@ -430,6 +465,18 @@ h3 {
 
 .scanner-panel {
     transform: translateY(0);
+}
+
+.scanner-panel.is-scanning {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .9),
+        inset 0 -22px 64px rgba(255, 255, 255, .2),
+        0 24px 70px rgba(0, 0, 0, .1),
+        0 0 38px rgba(255, 255, 255, .36);
+}
+
+.scanner-panel.is-scan-pulse {
+    animation: scan-found-pulse .86s ease-out both;
 }
 
 .register-fields.is-collapsed,
@@ -585,6 +632,11 @@ textarea:focus {
     box-shadow: inset 0 0 42px rgba(0, 0, 0, .34), var(--shadow-md);
 }
 
+.scanner-panel.is-scanning .scanner-frame {
+    border-color: rgba(255, 255, 255, .42);
+    animation: camera-breathe 2.2s ease-in-out infinite;
+}
+
 .scanner-frame video {
     display: block;
     width: 100%;
@@ -599,9 +651,13 @@ textarea:focus {
     top: 50%;
     height: 2px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, .82);
-    box-shadow: 0 0 16px rgba(255, 255, 255, .62);
+    background: rgba(255, 255, 255, .9);
+    box-shadow: 0 0 18px rgba(255, 255, 255, .72), 0 0 42px rgba(255, 255, 255, .28);
     animation: scan-pulse 1.9s ease-in-out infinite;
+}
+
+.scanner-panel.is-scanning .scan-line {
+    animation: scan-pulse 1.25s ease-in-out infinite;
 }
 
 .camera-note {
@@ -801,6 +857,25 @@ textarea:focus {
     font-weight: 820;
 }
 
+.result-mode-badge {
+    width: fit-content;
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .56);
+    color: var(--muted);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    backdrop-filter: blur(20px) saturate(125%);
+    font-size: .72rem;
+    font-weight: 820;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+:root[data-theme='dark'] .result-mode-badge {
+    background: rgba(28, 28, 28, .62);
+}
+
 .register-success {
     display: grid;
     gap: 12px;
@@ -816,7 +891,7 @@ textarea:focus {
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
     font-size: .78rem;
     font-weight: 820;
-    animation: pop-in .4s cubic-bezier(.2, .82, .2, 1) both;
+    animation: pop-in .4s cubic-bezier(.2, .82, .2, 1) both, ribbon-pulse 1.2s ease .25s 1;
 }
 
 .table-wrap {
@@ -1168,10 +1243,21 @@ textarea:focus {
         background: rgba(255, 255, 255, .58);
         box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
         backdrop-filter: blur(22px) saturate(125%);
+        transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .records-table tbody tr:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, .72);
+        box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
     }
 
     :root[data-theme='dark'] .records-table tbody tr {
         background: rgba(28, 28, 28, .62);
+    }
+
+    :root[data-theme='dark'] .records-table tbody tr:hover {
+        background: rgba(42, 42, 42, .76);
     }
 
     .records-table th,
@@ -1270,6 +1356,88 @@ textarea:focus {
         opacity: 1;
         transform: translateY(6px) scale(1);
         filter: blur(0);
+    }
+}
+
+@keyframes search-shimmer {
+    0% {
+        opacity: 0;
+        transform: translateX(-120%);
+    }
+
+    18%,
+    72% {
+        opacity: .62;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(120%);
+    }
+}
+
+@keyframes result-success-pulse {
+    0% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, .96),
+            inset 0 -34px 90px rgba(255, 255, 255, .22),
+            0 40px 110px rgba(0, 0, 0, .14),
+            0 12px 30px rgba(255, 255, 255, .34);
+    }
+
+    38% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 1),
+            inset 0 -34px 90px rgba(255, 255, 255, .28),
+            0 40px 110px rgba(0, 0, 0, .14),
+            0 0 54px rgba(255, 255, 255, .54);
+    }
+
+    100% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, .96),
+            inset 0 -34px 90px rgba(255, 255, 255, .22),
+            0 40px 110px rgba(0, 0, 0, .14),
+            0 12px 30px rgba(255, 255, 255, .34);
+    }
+}
+
+@keyframes scan-found-pulse {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    35% {
+        transform: scale(1.012);
+        filter: brightness(1.18);
+    }
+
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes ribbon-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    45% {
+        transform: scale(1.06);
+    }
+}
+
+@keyframes camera-breathe {
+    0%,
+    100% {
+        box-shadow: inset 0 0 42px rgba(0, 0, 0, .34), 0 0 18px rgba(255, 255, 255, .12);
+    }
+
+    50% {
+        box-shadow: inset 0 0 46px rgba(0, 0, 0, .3), 0 0 42px rgba(255, 255, 255, .24);
     }
 }
 
