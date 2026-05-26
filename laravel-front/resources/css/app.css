@@ -927,8 +927,12 @@ textarea:focus {
 }
 
 @media (max-width: 560px) {
+    body {
+        font-size: 13px;
+    }
+
     .app-shell {
-        padding: 14px;
+        padding: 8px;
     }
 
     .app-header,
@@ -936,37 +940,80 @@ textarea:focus {
         width: 100%;
     }
 
+    .app-header {
+        margin-bottom: 10px;
+    }
+
     .header-meta {
         width: 100%;
-        gap: 8px;
+        gap: 6px;
+        justify-content: center;
     }
 
     .header-meta button {
-        min-height: 38px;
-        padding: 8px 13px;
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 760;
     }
 
     .iris-form {
-        gap: 12px;
+        gap: 7px;
     }
 
     .iris-form::before {
-        min-height: 166px;
-        border-radius: 32px;
+        min-height: 118px;
+        border-radius: 24px;
     }
 
     .iris-form > label:first-child {
-        margin: 34px 18px 0;
+        margin: 27px 16px 0;
+    }
+
+    .iris-form > label:first-child::after {
+        top: -24px;
+        right: 8px;
+        font-size: 10px;
+    }
+
+    .iris-form > label:first-child input {
+        height: 38px;
+        border-radius: 17px;
+        font-size: 14px;
     }
 
     .iris-form > .actions {
-        margin: 0 18px 22px;
+        margin: 0 16px 13px;
+        gap: 7px;
+        flex-wrap: nowrap;
     }
 
     .result-panel,
     .register-fields,
     .scanner-panel {
-        padding: 20px;
+        padding: 14px;
+        border-radius: 22px;
+    }
+
+    .result-panel {
+        min-height: 0;
+    }
+
+    .result-heading {
+        margin-bottom: 10px;
+    }
+
+    .eyebrow {
+        font-size: 10px;
+    }
+
+    h2 {
+        font-size: 21px;
+        line-height: 1.08;
+    }
+
+    h3 {
+        font-size: 17px;
     }
 
     .field-grid {
@@ -981,7 +1028,12 @@ textarea:focus {
 
     .button,
     .ghost-button {
-        flex: 1 1 100%;
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 36px;
+        padding: 0 8px;
+        border-radius: 15px;
+        font-size: 13px;
     }
 
     .result-row {
@@ -1018,13 +1070,17 @@ textarea:focus {
 
     .records-table {
         border-collapse: separate;
-        border-spacing: 0 12px;
+        border-spacing: 0 7px;
+        font-size: 13px;
     }
 
     .records-table tbody tr {
-        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3px 10px;
+        padding: 8px 10px;
         border: 1px solid var(--line);
-        border-radius: 22px;
+        border-radius: 16px;
         background: rgba(255, 255, 255, .58);
         box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
         backdrop-filter: blur(22px) saturate(125%);
@@ -1041,21 +1097,29 @@ textarea:focus {
 
     .records-table td {
         display: grid;
-        grid-template-columns: 92px minmax(0, 1fr);
-        gap: 12px;
+        grid-template-columns: 66px minmax(0, 1fr);
+        gap: 8px;
         align-items: start;
-        min-height: 38px;
-        padding: 9px 4px;
+        min-height: 23px;
+        padding: 3px 0;
         background: transparent !important;
+        font-size: 13px;
+        line-height: 1.25;
     }
 
     .records-table td::before {
         content: attr(data-label);
         color: var(--muted);
-        font-size: .68rem;
+        font-size: 9px;
         font-weight: 820;
         letter-spacing: .08em;
         text-transform: uppercase;
+    }
+
+    .records-table td:nth-child(5),
+    .records-table td:nth-child(6),
+    .records-table td:nth-child(7) {
+        grid-column: 1 / -1;
     }
 }
 
