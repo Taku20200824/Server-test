@@ -962,7 +962,7 @@ textarea:focus {
     }
 
     .iris-form::before {
-        min-height: 118px;
+        min-height: 158px;
         border-radius: 24px;
     }
 
@@ -983,7 +983,7 @@ textarea:focus {
     }
 
     .iris-form > .actions {
-        margin: 0 16px 13px;
+        margin: 2px 16px 24px;
         gap: 7px;
         flex-wrap: nowrap;
     }
