@@ -378,16 +378,23 @@ h3 {
 
 .register-fields,
 .scanner-panel {
+    position: relative;
     display: grid;
     gap: 14px;
     max-height: 580px;
     padding: 20px;
     overflow: hidden;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(255, 255, 255, .54);
     border-radius: 24px;
-    background: linear-gradient(145deg, rgba(255, 255, 255, .76), rgba(255, 255, 255, .36));
-    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
-    backdrop-filter: blur(32px) saturate(125%);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .22)),
+        rgba(255, 255, 255, .18);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .9),
+        inset 0 -22px 64px rgba(255, 255, 255, .2),
+        0 24px 70px rgba(0, 0, 0, .1);
+    backdrop-filter: blur(42px) saturate(142%);
+    -webkit-backdrop-filter: blur(42px) saturate(142%);
     opacity: 1;
     transform-origin: top;
     transition:
@@ -399,8 +406,26 @@ h3 {
         box-shadow .38s ease;
 }
 
+.register-fields::before,
+.scanner-panel::before {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(120deg, rgba(255, 255, 255, .36), transparent 42%),
+        radial-gradient(circle at 84% 0%, rgba(255, 255, 255, .32), transparent 16rem);
+    content: '';
+    pointer-events: none;
+}
+
+.register-fields > *,
+.scanner-panel > * {
+    position: relative;
+    z-index: 1;
+}
+
 .register-fields {
     transform: translateY(6px);
+    animation: register-flow .46s cubic-bezier(.2, .82, .2, 1) both;
 }
 
 .scanner-panel {
@@ -447,6 +472,49 @@ textarea {
     outline: none;
     box-shadow: var(--inner-light), var(--inner-line);
     transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+:root[data-theme='dark'] .register-fields,
+:root[data-theme='dark'] .scanner-panel {
+    border-color: rgba(255, 255, 255, .2);
+    background:
+        linear-gradient(145deg, rgba(54, 54, 54, .5), rgba(12, 12, 12, .28)),
+        rgba(18, 18, 18, .24);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .18),
+        inset 0 -26px 70px rgba(255, 255, 255, .035),
+        0 24px 76px rgba(0, 0, 0, .42),
+        0 0 54px rgba(255, 255, 255, .06);
+}
+
+:root[data-theme='dark'] .register-fields::before,
+:root[data-theme='dark'] .scanner-panel::before {
+    background:
+        linear-gradient(120deg, rgba(255, 255, 255, .11), transparent 44%),
+        radial-gradient(circle at 82% 0%, rgba(255, 255, 255, .1), transparent 16rem);
+}
+
+:root[data-theme='dark'] .register-fields input,
+:root[data-theme='dark'] .scanner-panel input,
+:root[data-theme='dark'] .register-fields textarea,
+:root[data-theme='dark'] .scanner-panel textarea {
+    border-color: rgba(255, 255, 255, .16);
+    background: rgba(16, 16, 16, .54);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .08),
+        inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+:root[data-theme='dark'] .register-fields input:focus,
+:root[data-theme='dark'] .scanner-panel input:focus,
+:root[data-theme='dark'] .register-fields textarea:focus,
+:root[data-theme='dark'] .scanner-panel textarea:focus {
+    border-color: rgba(255, 255, 255, .34);
+    background: rgba(20, 20, 20, .74);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .12),
+        0 0 0 5px rgba(255, 255, 255, .07),
+        0 14px 34px rgba(0, 0, 0, .3);
 }
 
 input {
@@ -1188,6 +1256,20 @@ textarea:focus {
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes register-flow {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(.985);
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(6px) scale(1);
+        filter: blur(0);
     }
 }
 
