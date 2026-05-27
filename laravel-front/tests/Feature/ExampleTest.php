@@ -410,7 +410,46 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
 
-        $this->assertStringContainsString('barcode,name,kanji,katakana,address,addedDateTime', $response->streamedContent());
+        $content = $response->streamedContent();
+
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
+        $this->assertStringContainsString('id,barcode,name,kanji,katakana,address,addedDateTime', $content);
+        $this->assertStringContainsString(',"=""000001""",', $content);
+    }
+
+    public function test_admin_can_download_printable_barcodes(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/list' => Http::response([
+                'records' => [
+                    ['no' => 8, 'barcode' => '000008', 'name' => 'NARUTO'],
+                    ['no' => 15, 'barcode' => '15', 'name' => 'SAKURA'],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->withSession($this->adminSession())->get('/iris-test/barcodes.html');
+
+        $response
+            ->assertOk()
+            ->assertHeader('content-type', 'text/html; charset=UTF-8');
+
+        $content = $response->streamedContent();
+
+        $this->assertStringContainsString('<title>IRIS Barcodes</title>', $content);
+        $this->assertStringContainsString('ID 8', $content);
+        $this->assertStringContainsString('000008', $content);
+        $this->assertStringContainsString('000015', $content);
+        $this->assertStringContainsString('<svg', $content);
+        $this->assertStringContainsString('<rect', $content);
     }
 
     public function test_admin_can_upload_records_from_csv(): void
@@ -441,6 +480,34 @@ class ExampleTest extends TestCase
             && $request->url() === 'http://127.0.0.1:52773/test/api/register'
             && $request['barcode'] === '000011'
             && $request['name'] === 'HINATA');
+    }
+
+    public function test_admin_can_upload_excel_safe_barcode_from_csv(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/register' => Http::response(['message' => 'Registered'], 200),
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent(
+            'records.csv',
+            "id,barcode,name,kanji,katakana,address\n11,\"=\"\"000011\"\"\",HINATA,,,Kyoto\n"
+        );
+
+        $this->withSession($this->adminSession())
+            ->post('/iris-test/import.csv', ['csv_file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('csv_import');
+
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && $request['barcode'] === '000011');
     }
 
     public function test_viewer_cannot_register_update_or_delete_records(): void

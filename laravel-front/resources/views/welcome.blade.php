@@ -108,6 +108,7 @@
                         @endif
                         <div class="csv-actions">
                             <a class="button" href="{{ route('iris.csv.download') }}" data-i18n="downloadCsv">Download CSV</a>
+                            <a class="button" href="{{ route('iris.barcodes.download') }}" data-i18n="downloadBarcodes">Download barcodes</a>
                             <form method="POST" action="{{ route('iris.csv.upload') }}" enctype="multipart/form-data">
                                 @csrf
                                 <label class="file-button">

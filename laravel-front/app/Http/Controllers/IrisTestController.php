@@ -204,11 +204,13 @@ class IrisTestController extends Controller
 
         return response()->streamDownload(function () use ($records) {
             $output = fopen('php://output', 'w');
-            fputcsv($output, ['barcode', 'name', 'kanji', 'katakana', 'address', 'addedDateTime']);
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['id', 'barcode', 'name', 'kanji', 'katakana', 'address', 'addedDateTime']);
 
             foreach ($records as $record) {
                 fputcsv($output, [
-                    $record['barcode'] ?? '',
+                    (string) ($record['no'] ?? ''),
+                    $this->excelText($this->csvBarcode($record)),
                     $record['name'] ?? '',
                     $record['kanji'] ?? '',
                     $record['katakana'] ?? '',
@@ -220,6 +222,59 @@ class IrisTestController extends Controller
             fclose($output);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
+        ]);
+    }
+
+    public function downloadBarcodes(Request $request): StreamedResponse
+    {
+        if (! $this->isAdmin($request)) {
+            abort(403);
+        }
+
+        if ($this->configurationError() !== null) {
+            abort(422, $this->configurationError());
+        }
+
+        try {
+            $records = $this->fetchRecords()['records'];
+        } catch (ConnectionException $exception) {
+            abort(502, 'IRIS server could not be reached.');
+        }
+
+        $filename = 'iris-barcodes-'.now()->format('Ymd-His').'.html';
+
+        return response()->streamDownload(function () use ($records) {
+            echo "<!doctype html>\n<html lang=\"en\">\n<head>\n";
+            echo "<meta charset=\"utf-8\">\n<title>IRIS Barcodes</title>\n";
+            echo "<style>
+                *{box-sizing:border-box}
+                body{margin:0;padding:24px;background:#f7f7f4;color:#111;font-family:Arial,'Helvetica Neue',sans-serif}
+                h1{margin:0 0 18px;font-size:22px;letter-spacing:.08em;text-transform:uppercase}
+                .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+                .label{break-inside:avoid;background:#fff;border:1px solid #d8d8d2;border-radius:12px;padding:14px;box-shadow:0 8px 24px #00000014}
+                .meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#666}
+                .barcode{display:flex;justify-content:center;padding:10px 6px;background:#fff;border-radius:8px}
+                .number{text-align:center;margin-top:8px;font-size:18px;font-weight:800;letter-spacing:.16em}
+                @media print{body{background:#fff;padding:10mm}.label{box-shadow:none;border-color:#111}h1{display:none}}
+            </style>\n";
+            echo "</head>\n<body>\n<h1>IRIS Barcodes</h1>\n<div class=\"sheet\">\n";
+
+            foreach ($records as $record) {
+                $id = (string) ($record['no'] ?? '');
+                $barcode = $this->csvBarcode($record);
+
+                echo "<section class=\"label\">\n";
+                echo "<div class=\"meta\"><span>ID ".e($id)."</span><span>".e($barcode)."</span></div>\n";
+                echo "<div class=\"barcode\">".$this->code39Svg($barcode)."</div>\n";
+                echo "<div class=\"number\">".e($barcode)."</div>\n";
+                echo "</section>\n";
+            }
+
+            echo "</div>\n</body>\n</html>\n";
+        }, $filename, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
         ]);
     }
 
@@ -245,7 +300,7 @@ class IrisTestController extends Controller
 
         foreach ($rows as $index => $row) {
             $payload = [
-                'barcode' => $this->cleanBarcode($row['barcode'] ?? ''),
+                'barcode' => $this->cleanBarcode($row['barcode'] ?? $row['id'] ?? $row['no'] ?? ''),
                 'name' => trim((string) ($row['name'] ?? '')),
                 'kanji' => trim((string) ($row['kanji'] ?? '')),
                 'katakana' => trim((string) ($row['katakana'] ?? '')),
@@ -480,6 +535,73 @@ class IrisTestController extends Controller
         return $rows;
     }
 
+    private function csvBarcode(array $record): string
+    {
+        $barcode = $this->cleanBarcode((string) ($record['barcode'] ?? ''));
+
+        if ($barcode !== '') {
+            return ctype_digit($barcode) && strlen($barcode) < 6
+                ? str_pad($barcode, 6, '0', STR_PAD_LEFT)
+                : $barcode;
+        }
+
+        $no = $this->cleanBarcode((string) ($record['no'] ?? ''));
+
+        return $no !== '' && ctype_digit($no)
+            ? str_pad($no, 6, '0', STR_PAD_LEFT)
+            : $no;
+    }
+
+    private function excelText(string $value): string
+    {
+        return $value === '' ? '' : '="'.$value.'"';
+    }
+
+    private function code39Svg(string $value): string
+    {
+        $patterns = [
+            '0' => 'nnnwwnwnn', '1' => 'wnnwnnnnw', '2' => 'nnwwnnnnw', '3' => 'wnwwnnnnn',
+            '4' => 'nnnwwnnnw', '5' => 'wnnwwnnnn', '6' => 'nnwwwnnnn', '7' => 'nnnwnnwnw',
+            '8' => 'wnnwnnwnn', '9' => 'nnwwnnwnn', 'A' => 'wnnnnwnnw', 'B' => 'nnwnnwnnw',
+            'C' => 'wnwnnwnnn', 'D' => 'nnnnwwnnw', 'E' => 'wnnnwwnnn', 'F' => 'nnwnwwnnn',
+            'G' => 'nnnnnwwnw', 'H' => 'wnnnnwwnn', 'I' => 'nnwnnwwnn', 'J' => 'nnnnwwwnn',
+            'K' => 'wnnnnnnww', 'L' => 'nnwnnnnww', 'M' => 'wnwnnnnwn', 'N' => 'nnnnwnnww',
+            'O' => 'wnnnwnnwn', 'P' => 'nnwnwnnwn', 'Q' => 'nnnnnnwww', 'R' => 'wnnnnnwwn',
+            'S' => 'nnwnnnwwn', 'T' => 'nnnnwnwwn', 'U' => 'wwnnnnnnw', 'V' => 'nwwnnnnnw',
+            'W' => 'wwwnnnnnn', 'X' => 'nwnnwnnnw', 'Y' => 'wwnnwnnnn', 'Z' => 'nwwnwnnnn',
+            '-' => 'nwnnnnwnw', '.' => 'wwnnnnwnn', ' ' => 'nwwnnnwnn', '*' => 'nwnnwnwnn',
+            '$' => 'nwnwnwnnn', '/' => 'nwnwnnnwn', '+' => 'nwnnnwnwn', '%' => 'nnnwnwnwn',
+        ];
+
+        $clean = preg_replace('/[^0-9A-Z\-. $\/+%]/', '', $this->cleanBarcode($value));
+        $encoded = '*'.($clean === '' ? '0' : $clean).'*';
+        $narrow = 2;
+        $wide = 5;
+        $height = 74;
+        $x = 10;
+        $bars = '';
+
+        foreach (str_split($encoded) as $char) {
+            $pattern = $patterns[$char] ?? $patterns['0'];
+
+            foreach (str_split($pattern) as $index => $widthCode) {
+                $width = $widthCode === 'w' ? $wide : $narrow;
+
+                if ($index % 2 === 0) {
+                    $bars .= '<rect x="'.$x.'" y="0" width="'.$width.'" height="'.$height.'" fill="#111"/>';
+                }
+
+                $x += $width;
+            }
+
+            $x += $narrow;
+        }
+
+        $width = $x + 10;
+
+        return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Barcode '.e($value).'" viewBox="0 0 '.$width.' '.$height.'" width="100%" height="74" preserveAspectRatio="xMidYMid meet">'.$bars.'</svg>';
+    }
+
     private function nextBarcode(): string
     {
         $listTimeout = max(1, (int) config('services.iris.list_timeout', 2));
@@ -525,7 +647,13 @@ class IrisTestController extends Controller
 
     private function cleanBarcode(?string $barcode): string
     {
-        return Str::upper(trim(str_replace('*', '', $barcode)));
+        $barcode = trim(str_replace('*', '', (string) $barcode));
+
+        if (preg_match('/^="([^"]*)"$/', $barcode, $matches)) {
+            $barcode = $matches[1];
+        }
+
+        return Str::upper($barcode);
     }
 
     private function irisBaseUrl(): string
