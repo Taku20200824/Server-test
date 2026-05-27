@@ -17,7 +17,11 @@ const cameraStop = document.querySelector('[data-camera-stop]');
 const cameraToggle = document.querySelector('[data-camera-toggle]');
 const scannerPanel = document.querySelector('[data-scanner-panel]');
 const themeToggle = document.querySelector('[data-theme-toggle]');
-const languageSelect = document.querySelector('[data-language-select]');
+const languageMenu = document.querySelector('[data-language-menu]');
+const languageButton = document.querySelector('[data-language-button]');
+const languageCurrent = document.querySelector('[data-language-current]');
+const languageList = document.querySelector('[data-language-list]');
+const languageOptions = document.querySelectorAll('[data-language-option]');
 const resultPanel = document.querySelector('.result-panel');
 const saveRecordButton = form?.querySelector('[data-save-record]');
 const deleteRecordButton = form?.querySelector('[data-delete-record]');
@@ -36,6 +40,15 @@ const routes = {
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 let selectedRecord = null;
+let lastResultPayload = null;
+let lastRecordTable = null;
+let lastRegisterResult = null;
+
+const languageLabels = {
+    ja: '日本語',
+    en: 'English',
+    mn: 'Монгол',
+};
 
 const translations = {
     ja: {
@@ -245,15 +258,57 @@ function setLanguage(language) {
     document.documentElement.lang = nextLanguage === 'mn' ? 'mn' : nextLanguage;
     localStorage.setItem('iris-language', nextLanguage);
 
-    if (languageSelect) {
-        languageSelect.value = nextLanguage;
+    if (languageCurrent) {
+        languageCurrent.textContent = languageLabels[nextLanguage];
     }
+
+    languageOptions.forEach((option) => {
+        const isActive = option.value === nextLanguage;
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
 
     document.querySelectorAll('[data-i18n]').forEach((element) => {
         element.textContent = t(element.dataset.i18n);
     });
 
     setTheme(document.documentElement.dataset.theme || 'light');
+    refreshResultLanguage();
+}
+
+function closeLanguageMenu() {
+    if (!languageList || !languageButton) {
+        return;
+    }
+
+    languageList.hidden = true;
+    languageButton.setAttribute('aria-expanded', 'false');
+}
+
+function toggleLanguageMenu() {
+    if (!languageList || !languageButton) {
+        return;
+    }
+
+    const willOpen = languageList.hidden;
+    languageList.hidden = !willOpen;
+    languageButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+function refreshResultLanguage() {
+    if (lastResultPayload) {
+        showBarcodeResult(lastResultPayload, true);
+        return;
+    }
+
+    if (lastRecordTable) {
+        showRecordTable(lastRecordTable.records, lastRecordTable.limit, lastRecordTable.label, true);
+        return;
+    }
+
+    if (lastRegisterResult) {
+        showRegisterResult(lastRegisterResult.data, lastRegisterResult.action, true);
+    }
 }
 
 function setTheme(theme) {
@@ -320,12 +375,18 @@ function renderStableResult(html) {
         .forEach((item) => item.classList.add('is-visible'));
 }
 
-function showBarcodeResult(payload) {
+function showBarcodeResult(payload, isRefresh = false) {
+    if (!isRefresh) {
+        lastResultPayload = payload;
+        lastRecordTable = null;
+        lastRegisterResult = null;
+    }
+
     const data = payload?.body?.data;
     const request = payload?.body?.request ?? {};
 
     if (Array.isArray(data?.records)) {
-        showRecordTable(data.records, null, t('allRecords'));
+        showRecordTable(data.records, null, t('allRecords'), isRefresh);
         scrollResultIntoView();
         return;
     }
@@ -349,7 +410,7 @@ function showBarcodeResult(payload) {
             message: payload.action === 'update' ? t('updated') : (data.message ?? t('registered')),
         };
 
-        showRegisterResult(registered, payload.action);
+        showRegisterResult(registered, payload.action, isRefresh);
         collapseRegisterPanel();
         vibrate([35, 35, 55]);
         return;
@@ -412,7 +473,13 @@ function showLoadingResult(message = t('loadingData')) {
     armResultReveal();
 }
 
-function showRegisterResult(data, action = 'register') {
+function showRegisterResult(data, action = 'register', isRefresh = false) {
+    if (!isRefresh) {
+        lastRegisterResult = { data, action };
+        lastResultPayload = null;
+        lastRecordTable = null;
+    }
+
     const rows = [
         [t('status'), data.message],
         [t('barcode'), data.barcode],
@@ -433,7 +500,13 @@ function showRegisterResult(data, action = 'register') {
     </div>`);
 }
 
-function showRecordTable(records, limit = null, label = 'All records') {
+function showRecordTable(records, limit = null, label = t('allRecords'), isRefresh = false) {
+    if (!isRefresh) {
+        lastRecordTable = { records, limit, label };
+        lastResultPayload = null;
+        lastRegisterResult = null;
+    }
+
     const visibleRecords = Number.isInteger(limit) ? records.slice(0, limit) : records;
 
     if (visibleRecords.length === 0) {
@@ -825,8 +898,23 @@ themeToggle?.addEventListener('click', () => {
     setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 });
 
-languageSelect?.addEventListener('change', (event) => {
-    setLanguage(event.currentTarget.value);
+languageButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleLanguageMenu();
+});
+
+languageOptions.forEach((option) => {
+    option.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setLanguage(event.currentTarget.value);
+        closeLanguageMenu();
+    });
+});
+
+document.addEventListener('click', (event) => {
+    if (!languageMenu?.contains(event.target)) {
+        closeLanguageMenu();
+    }
 });
 
 async function stopScanner() {

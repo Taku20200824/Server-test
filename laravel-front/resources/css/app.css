@@ -201,7 +201,7 @@ textarea:focus-visible {
     display: contents;
 }
 
-.header-meta span,
+.header-meta > span,
 .header-meta button {
     min-height: 34px;
     padding: 7px 14px;
@@ -213,6 +213,32 @@ textarea:focus-visible {
     backdrop-filter: blur(22px) saturate(130%);
     font-size: .78rem;
     font-weight: 760;
+}
+
+.header-meta .user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 260px;
+    padding: 4px 6px 4px 12px;
+    white-space: nowrap;
+}
+
+.header-meta .user-name {
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
+}
+
+.header-meta .role-chip {
+    min-height: 24px;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .54);
+    box-shadow: var(--inner-light), var(--inner-line);
+    font-size: .72rem;
+    font-weight: 820;
 }
 
 .header-meta button {
@@ -793,8 +819,9 @@ textarea:focus {
     transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
 }
 
-:root[data-theme='dark'] .header-meta span,
+:root[data-theme='dark'] .header-meta > span,
 :root[data-theme='dark'] .header-meta button,
+:root[data-theme='dark'] .language-button,
 :root[data-theme='dark'] .button,
 :root[data-theme='dark'] .ghost-button {
     border-color: rgba(255, 255, 255, .12);
@@ -802,7 +829,15 @@ textarea:focus {
     color: var(--ink);
 }
 
+:root[data-theme='dark'] .header-meta .role-chip,
+:root[data-theme='dark'] .language-list {
+    border-color: rgba(255, 255, 255, .12);
+    background: rgba(24, 24, 24, .9);
+}
+
 :root[data-theme='dark'] .header-meta button:hover,
+:root[data-theme='dark'] .language-list button:hover,
+:root[data-theme='dark'] .language-list button.is-active,
 :root[data-theme='dark'] .button:hover,
 :root[data-theme='dark'] .ghost-button:hover {
     background: rgba(46, 46, 46, .88);
@@ -1231,9 +1266,19 @@ textarea:focus {
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
 }
 
-.language-select {
+.language-menu {
+    position: relative;
+    z-index: 12;
+}
+
+.language-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     min-height: 34px;
-    padding: 7px 34px 7px 14px;
+    min-width: 112px;
+    padding: 7px 28px 7px 14px;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: var(--glass);
@@ -1244,11 +1289,71 @@ textarea:focus {
     font: inherit;
     font-size: .78rem;
     font-weight: 760;
+    line-height: 1;
 }
 
-.language-select:focus-visible {
+.language-button::after {
+    position: absolute;
+    right: 12px;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    content: '';
+    opacity: .7;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform .18s ease;
+}
+
+.language-button[aria-expanded='true']::after {
+    transform: translateY(2px) rotate(225deg);
+}
+
+.language-button:focus-visible {
     outline: 3px solid var(--accent-soft);
     outline-offset: 3px;
+}
+
+.language-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    display: grid;
+    min-width: 150px;
+    padding: 7px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .9);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
+    backdrop-filter: blur(26px) saturate(135%);
+    -webkit-backdrop-filter: blur(26px) saturate(135%);
+    animation: pop-in .16s ease both;
+}
+
+.language-list[hidden] {
+    display: none;
+}
+
+.language-list button {
+    min-height: 34px;
+    width: 100%;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--ink);
+    box-shadow: none;
+    text-align: left;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 780;
+}
+
+.language-list button:hover,
+.language-list button.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
 }
 
 .login-controls {
@@ -1387,11 +1492,17 @@ textarea:focus {
     }
 
     .header-meta button,
-    .header-meta .language-select {
+    .header-meta .language-button,
+    .header-meta .user-pill {
         min-height: 32px;
         padding: 6px 10px;
         font-size: 11px;
         font-weight: 760;
+    }
+
+    .header-meta .language-button {
+        min-width: 92px;
+        padding-right: 24px;
     }
 
     .login-controls {
@@ -1403,10 +1514,15 @@ textarea:focus {
     }
 
     .login-controls .theme-float,
-    .login-controls .language-select {
+    .login-controls .language-button {
         min-height: 32px;
         padding: 6px 10px;
         font-size: 11px;
+    }
+
+    .login-controls .language-button {
+        min-width: 92px;
+        padding-right: 24px;
     }
 
     .iris-form {
@@ -1761,8 +1877,10 @@ body::before {
 .result-panel,
 .register-fields,
 .scanner-panel,
-.header-meta span,
+.header-meta > span,
 .header-meta button,
+.language-button,
+.language-list,
 .button,
 .ghost-button,
 .result-grid,
@@ -1777,8 +1895,10 @@ body::before {
     .result-panel,
     .register-fields,
     .scanner-panel,
-    .header-meta span,
+    .header-meta > span,
     .header-meta button,
+    .language-button,
+    .language-list,
     .button,
     .ghost-button,
     .result-grid,

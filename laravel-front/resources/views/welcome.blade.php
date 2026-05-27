@@ -40,12 +40,20 @@
                     <h1></h1>
                 </div>
                 <div class="header-meta">
-                    <span>{{ $loginUser }} · <span data-i18n="{{ $isAdmin ? 'roleAdmin' : 'roleViewer' }}">{{ $isAdmin ? 'Admin' : 'Viewer' }}</span></span>
-                    <select class="language-select" data-language-select aria-label="Language">
-                        <option value="ja">日本語</option>
-                        <option value="en">English</option>
-                        <option value="mn">Монгол</option>
-                    </select>
+                    <span class="user-pill">
+                        <span class="user-name">{{ $loginUser }}</span>
+                        <span class="role-chip" data-i18n="{{ $isAdmin ? 'roleAdmin' : 'roleViewer' }}">{{ $isAdmin ? 'Admin' : 'Viewer' }}</span>
+                    </span>
+                    <div class="language-menu" data-language-menu>
+                        <button class="language-button" type="button" data-language-button aria-haspopup="true" aria-expanded="false">
+                            <span data-language-current>日本語</span>
+                        </button>
+                        <div class="language-list" data-language-list hidden>
+                            <button type="button" data-language-option value="ja">日本語</button>
+                            <button type="button" data-language-option value="en">English</button>
+                            <button type="button" data-language-option value="mn">Монгол</button>
+                        </div>
+                    </div>
                     <button type="button" data-theme-toggle data-i18n="darkMode">Dark mode</button>
                     <button type="button" data-camera-toggle data-i18n="cameraScan">Camera scan</button>
                     <form method="POST" action="{{ route('logout') }}">

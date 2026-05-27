@@ -34,11 +34,16 @@
     <body>
         <main class="login-shell">
             <div class="login-controls">
-                <select class="language-select" data-language-select aria-label="Language">
-                    <option value="ja">日本語</option>
-                    <option value="en">English</option>
-                    <option value="mn">Монгол</option>
-                </select>
+                <div class="language-menu" data-language-menu>
+                    <button class="language-button" type="button" data-language-button aria-haspopup="true" aria-expanded="false">
+                        <span data-language-current>日本語</span>
+                    </button>
+                    <div class="language-list" data-language-list hidden>
+                        <button type="button" data-language-option value="ja">日本語</button>
+                        <button type="button" data-language-option value="en">English</button>
+                        <button type="button" data-language-option value="mn">Монгол</button>
+                    </div>
+                </div>
                 <button class="theme-float" type="button" data-theme-toggle data-i18n="darkMode">Dark mode</button>
             </div>
             <section class="login-card" aria-label="IRIS login">
