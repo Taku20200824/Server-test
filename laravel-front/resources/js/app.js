@@ -23,6 +23,8 @@ const languageCurrent = document.querySelector('[data-language-current]');
 const languageList = document.querySelector('[data-language-list]');
 const languageOptions = document.querySelectorAll('[data-language-option]');
 const resultPanel = document.querySelector('.result-panel');
+const accountToggle = document.querySelector('[data-account-toggle]');
+const accountPanel = document.querySelector('[data-account-panel]');
 const saveRecordButton = form?.querySelector('[data-save-record]');
 const deleteRecordButton = form?.querySelector('[data-delete-record]');
 const canEdit = document.querySelector('meta[name="iris-can-edit"]')?.content === '1';
@@ -111,6 +113,15 @@ const translations = {
         login: 'ログイン',
         username: 'ユーザー名',
         password: 'パスワード',
+        createAccount: 'アカウント作成',
+        accountRule: '4桁ID。9で終わるIDは管理者になります。',
+        accountId: 'アカウントID',
+        registerAccount: 'アカウント登録',
+        accountSettings: 'アカウント設定',
+        displayName: '表示名',
+        newPassword: '新しいパスワード',
+        confirmPassword: 'パスワード確認',
+        saveSettings: '設定を保存',
     },
     en: {
         darkMode: 'Dark mode',
@@ -172,6 +183,15 @@ const translations = {
         login: 'Login',
         username: 'Username',
         password: 'Password',
+        createAccount: 'Create account',
+        accountRule: '4 digit ID. IDs ending in 9 become admin.',
+        accountId: 'Account ID',
+        registerAccount: 'Register account',
+        accountSettings: 'Account settings',
+        displayName: 'Display name',
+        newPassword: 'New password',
+        confirmPassword: 'Confirm password',
+        saveSettings: 'Save settings',
     },
     mn: {
         darkMode: 'Харанхуй',
@@ -233,6 +253,15 @@ const translations = {
         login: 'Нэвтрэх',
         username: 'Нэвтрэх нэр',
         password: 'Нууц үг',
+        createAccount: 'Аккаунт үүсгэх',
+        accountRule: '4 оронтой ID. 9-өөр төгсвөл admin болно.',
+        accountId: 'Аккаунт ID',
+        registerAccount: 'Аккаунт бүртгэх',
+        accountSettings: 'Аккаунтын тохиргоо',
+        displayName: 'Харагдах нэр',
+        newPassword: 'Шинэ нууц үг',
+        confirmPassword: 'Нууц үг давтах',
+        saveSettings: 'Тохиргоо хадгалах',
     },
 };
 
@@ -515,7 +544,7 @@ function showRecordTable(records, limit = null, label = t('allRecords'), isRefre
         return;
     }
 
-    const tableLabel = Number.isInteger(limit) ? `${visibleRecords.length} ${t('recentRecords')}` : `${label}: ${visibleRecords.length}`;
+    const tableLabel = Number.isInteger(limit) ? `${visibleRecords.length} ${t('recentRecords')}` : `${t('allRecords')}: ${visibleRecords.length}`;
 
     barcodeResult.innerHTML = `<div class="result-mode-badge reveal-item">${escapeHtml(tableLabel)}</div>
     <div class="table-wrap">
@@ -864,6 +893,18 @@ cameraToggle?.addEventListener('click', () => {
 
 registerToggle?.addEventListener('click', () => {
     toggleRegisterPanel();
+});
+
+accountToggle?.addEventListener('click', () => {
+    const willOpen = isPanelCollapsed(accountPanel);
+
+    if (willOpen) {
+        expandPanel(accountPanel);
+    } else {
+        collapsePanel(accountPanel);
+    }
+
+    accountToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
 });
 
 deleteRecordButton?.addEventListener('click', () => {

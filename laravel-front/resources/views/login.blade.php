@@ -69,6 +69,43 @@
 
                     <button class="button primary" type="submit" data-i18n="login">Login</button>
                 </form>
+
+                <section class="signup-panel">
+                    <div>
+                        <p class="eyebrow" data-i18n="createAccount">Create account</p>
+                        <p class="signup-note" data-i18n="accountRule">4 digit ID. IDs ending in 9 become admin.</p>
+                    </div>
+
+                    @if (session('account_registered'))
+                        <div class="result-alert is-visible">{{ session('account_registered') }}</div>
+                    @endif
+                    @if ($errors->register->any())
+                        <div class="result-alert is-visible">{{ $errors->register->first() }}</div>
+                    @endif
+
+                    <form method="POST" action="{{ route('account.register') }}" class="login-form">
+                        @csrf
+                        <label>
+                            <span data-i18n="accountId">Account ID</span>
+                            <input name="username" inputmode="numeric" maxlength="4" value="{{ old('username') }}" placeholder="1234">
+                        </label>
+                        <label>
+                            <span data-i18n="displayName">Display name</span>
+                            <input name="display_name" maxlength="80" value="{{ old('display_name') }}" placeholder="Taku">
+                        </label>
+                        <div class="field-grid">
+                            <label>
+                                <span data-i18n="password">Password</span>
+                                <input name="password" type="password" autocomplete="new-password">
+                            </label>
+                            <label>
+                                <span data-i18n="confirmPassword">Confirm password</span>
+                                <input name="password_confirmation" type="password" autocomplete="new-password">
+                            </label>
+                        </div>
+                        <button class="button success" type="submit" data-i18n="registerAccount">Register account</button>
+                    </form>
+                </section>
             </section>
         </main>
     </body>

@@ -515,7 +515,9 @@ h3 {
 }
 
 .register-fields,
-.scanner-panel {
+.scanner-panel,
+.account-panel,
+.signup-panel {
     position: relative;
     display: grid;
     gap: 14px;
@@ -545,7 +547,9 @@ h3 {
 }
 
 .register-fields::before,
-.scanner-panel::before {
+.scanner-panel::before,
+.account-panel::before,
+.signup-panel::before {
     position: absolute;
     inset: 0;
     background:
@@ -556,7 +560,9 @@ h3 {
 }
 
 .register-fields > *,
-.scanner-panel > * {
+.scanner-panel > *,
+.account-panel > *,
+.signup-panel > * {
     position: relative;
     z-index: 1;
 }
@@ -584,7 +590,8 @@ h3 {
 }
 
 .register-fields.is-collapsed,
-.scanner-panel.is-collapsed {
+.scanner-panel.is-collapsed,
+.account-panel.is-collapsed {
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
@@ -595,8 +602,32 @@ h3 {
 }
 
 .register-fields.is-collapsed,
-.scanner-panel.is-collapsed {
+.scanner-panel.is-collapsed,
+.account-panel.is-collapsed {
     transform: translateY(-18px) scale(.98);
+}
+
+.account-panel {
+    width: calc(100vw - 56px);
+    max-width: 760px;
+    margin: -12px auto 24px;
+}
+
+.account-form,
+.signup-panel {
+    display: grid;
+    gap: 14px;
+}
+
+.signup-panel {
+    margin-top: 24px;
+}
+
+.signup-note {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 680;
 }
 
 .field-grid {
@@ -626,7 +657,9 @@ textarea {
 }
 
 :root[data-theme='dark'] .register-fields,
-:root[data-theme='dark'] .scanner-panel {
+:root[data-theme='dark'] .scanner-panel,
+:root[data-theme='dark'] .account-panel,
+:root[data-theme='dark'] .signup-panel {
     border-color: rgba(255, 255, 255, .2);
     background:
         linear-gradient(145deg, rgba(54, 54, 54, .5), rgba(12, 12, 12, .28)),
@@ -639,7 +672,9 @@ textarea {
 }
 
 :root[data-theme='dark'] .register-fields::before,
-:root[data-theme='dark'] .scanner-panel::before {
+:root[data-theme='dark'] .scanner-panel::before,
+:root[data-theme='dark'] .account-panel::before,
+:root[data-theme='dark'] .signup-panel::before {
     background:
         linear-gradient(120deg, rgba(255, 255, 255, .11), transparent 44%),
         radial-gradient(circle at 82% 0%, rgba(255, 255, 255, .1), transparent 16rem);
@@ -647,6 +682,8 @@ textarea {
 
 :root[data-theme='dark'] .register-fields input,
 :root[data-theme='dark'] .scanner-panel input,
+:root[data-theme='dark'] .account-panel input,
+:root[data-theme='dark'] .signup-panel input,
 :root[data-theme='dark'] .register-fields textarea,
 :root[data-theme='dark'] .scanner-panel textarea {
     border-color: rgba(255, 255, 255, .16);
@@ -1373,7 +1410,7 @@ textarea:focus {
 .login-card {
     position: relative;
     overflow: hidden;
-    width: min(100%, 440px);
+    width: min(100%, 520px);
     padding: 34px;
     border: 1px solid rgba(0, 0, 0, .1);
     border-radius: 34px;
@@ -1425,6 +1462,11 @@ textarea:focus {
 
     .workspace {
         width: calc(100vw - 28px);
+    }
+
+    .account-panel {
+        width: calc(100vw - 28px);
+        margin-top: -8px;
     }
 
     .workspace,
@@ -1558,6 +1600,8 @@ textarea:focus {
 
     .result-panel,
     .register-fields,
+    .account-panel,
+    .signup-panel,
     .scanner-panel {
         padding: 14px;
         border-radius: 22px;
@@ -1854,6 +1898,8 @@ body::before {
 .login-panel,
 .register-fields:not(.is-collapsed),
 .scanner-panel:not(.is-collapsed),
+.account-panel:not(.is-collapsed),
+.signup-panel,
 .result-panel.is-success-pulse,
 .success-ribbon,
 .reveal-row.is-visible,
@@ -1877,6 +1923,8 @@ body::before {
 .result-panel,
 .register-fields,
 .scanner-panel,
+.account-panel,
+.signup-panel,
 .header-meta > span,
 .header-meta button,
 .language-button,
@@ -1895,6 +1943,8 @@ body::before {
     .result-panel,
     .register-fields,
     .scanner-panel,
+    .account-panel,
+    .signup-panel,
     .header-meta > span,
     .header-meta button,
     .language-button,

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -63,6 +64,61 @@ class ExampleTest extends TestCase
 
         $this->assertTrue(session('iris_logged_in'));
         $this->assertSame('viewer', session('iris_login_role'));
+    }
+
+    public function test_account_registration_uses_id_rule_for_roles(): void
+    {
+        Storage::fake('local');
+
+        $this->post('/register-account', [
+            'username' => '1239',
+            'display_name' => 'Boss',
+            'password' => 'pass1234',
+            'password_confirmation' => 'pass1234',
+        ])->assertRedirect();
+
+        $this->post('/login', [
+            'username' => '1239',
+            'password' => 'pass1234',
+        ])->assertRedirect(route('iris.index'));
+
+        $this->assertSame('admin', session('iris_login_role'));
+        $this->assertSame('Boss', session('iris_login_name'));
+    }
+
+    public function test_account_registration_makes_other_four_digit_ids_viewers(): void
+    {
+        Storage::fake('local');
+
+        $this->post('/register-account', [
+            'username' => '1234',
+            'display_name' => 'Guest',
+            'password' => 'pass1234',
+            'password_confirmation' => 'pass1234',
+        ])->assertRedirect();
+
+        $this->post('/login', [
+            'username' => '1234',
+            'password' => 'pass1234',
+        ])->assertRedirect(route('iris.index'));
+
+        $this->assertSame('viewer', session('iris_login_role'));
+        $this->assertSame('Guest', session('iris_login_name'));
+    }
+
+    public function test_logged_in_user_can_update_account_settings(): void
+    {
+        Storage::fake('local');
+
+        $this->withSession($this->adminSession())
+            ->post('/account/settings', [
+                'display_name' => 'Admin Name',
+                'password' => 'next1234',
+                'password_confirmation' => 'next1234',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('Admin Name', session('iris_login_name'));
     }
 
     public function test_the_iris_console_returns_a_successful_response(): void

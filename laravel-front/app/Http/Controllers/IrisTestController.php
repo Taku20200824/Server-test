@@ -16,6 +16,7 @@ class IrisTestController extends Controller
             'irisUrl' => $this->maskedBaseUrl(),
             'isAdmin' => $this->isAdmin($request),
             'loginUser' => $request->session()->get('iris_login_user', ''),
+            'loginName' => $request->session()->get('iris_login_name', $request->session()->get('iris_login_user', '')),
             'loginRole' => $request->session()->get('iris_login_role', 'viewer'),
         ]);
     }

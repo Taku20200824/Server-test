@@ -40,10 +40,10 @@
                     <h1></h1>
                 </div>
                 <div class="header-meta">
-                    <span class="user-pill">
-                        <span class="user-name">{{ $loginUser }}</span>
+                    <button class="user-pill" type="button" data-account-toggle aria-expanded="{{ session('account_updated') || $errors->account->any() ? 'true' : 'false' }}">
+                        <span class="user-name">{{ $loginName }}</span>
                         <span class="role-chip" data-i18n="{{ $isAdmin ? 'roleAdmin' : 'roleViewer' }}">{{ $isAdmin ? 'Admin' : 'Viewer' }}</span>
-                    </span>
+                    </button>
                     <div class="language-menu" data-language-menu>
                         <button class="language-button" type="button" data-language-button aria-haspopup="true" aria-expanded="false">
                             <span data-language-current>日本語</span>
@@ -62,6 +62,39 @@
                     </form>
                 </div>
             </header>
+
+            <section class="account-panel {{ session('account_updated') || $errors->account->any() ? '' : 'is-collapsed' }}" data-account-panel aria-hidden="{{ session('account_updated') || $errors->account->any() ? 'false' : 'true' }}">
+                <div>
+                    <p class="eyebrow" data-i18n="accountSettings">Account settings</p>
+                    <h2>{{ $loginUser }}</h2>
+                </div>
+                @if (session('account_updated'))
+                    <div class="result-alert is-visible">{{ session('account_updated') }}</div>
+                @endif
+                @if ($errors->account->any())
+                    <div class="result-alert is-visible">{{ $errors->account->first() }}</div>
+                @endif
+                <form method="POST" action="{{ route('account.update') }}" class="account-form">
+                    @csrf
+                    <label>
+                        <span data-i18n="displayName">Display name</span>
+                        <input name="display_name" value="{{ old('display_name', $loginName) }}" maxlength="80">
+                    </label>
+                    <div class="field-grid">
+                        <label>
+                            <span data-i18n="newPassword">New password</span>
+                            <input name="password" type="password" autocomplete="new-password">
+                        </label>
+                        <label>
+                            <span data-i18n="confirmPassword">Confirm password</span>
+                            <input name="password_confirmation" type="password" autocomplete="new-password">
+                        </label>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="button success" type="submit" data-i18n="saveSettings">Save settings</button>
+                    </div>
+                </form>
+            </section>
 
             <section class="workspace">
                 <section class="tool-panel" aria-label="IRIS barcode form">

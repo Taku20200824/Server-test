@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureIrisAuthenticated;
 
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
+Route::post('/register-account', [LoginController::class, 'registerAccount'])->name('account.register');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware([EnsureIrisAuthenticated::class])->group(function () {
@@ -18,4 +19,5 @@ Route::middleware([EnsureIrisAuthenticated::class])->group(function () {
     Route::post('/iris-test/register', [IrisTestController::class, 'register'])->name('iris.register');
     Route::post('/iris-test/update', [IrisTestController::class, 'update'])->name('iris.update');
     Route::post('/iris-test/delete', [IrisTestController::class, 'delete'])->name('iris.delete');
+    Route::post('/account/settings', [LoginController::class, 'updateAccount'])->name('account.update');
 });
