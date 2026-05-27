@@ -34,6 +34,7 @@ const routes = {
 };
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+let selectedRecord = null;
 
 function setTheme(theme) {
     const nextTheme = theme === 'dark' ? 'dark' : 'light';
@@ -90,6 +91,14 @@ function vibrate(pattern = 55) {
     }
 }
 
+function renderStableResult(html) {
+    barcodeResult.innerHTML = html;
+
+    barcodeResult
+        .querySelectorAll('.reveal-item, .result-alert, .empty-state, .table-wrap')
+        .forEach((item) => item.classList.add('is-visible'));
+}
+
 function showBarcodeResult(payload) {
     const data = payload?.body?.data;
     const request = payload?.body?.request ?? {};
@@ -121,33 +130,28 @@ function showBarcodeResult(payload) {
 
         showRegisterResult(registered, payload.action);
         collapseRegisterPanel();
-        pulseElement(resultPanel, 'is-success-pulse');
         vibrate([35, 35, 55]);
-        scrollResultIntoView();
         return;
     }
 
-    if (payload?.action === 'delete' && payload.ok) {
-        barcodeResult.innerHTML = `<div class="register-success">
+    if (payload?.action === 'delete' && payload.ok && (data.deleted || data.message === 'Deleted')) {
+        renderStableResult(`<div class="register-success">
             <div class="success-ribbon">Deleted</div>
             <div class="result-grid">
-                <div class="result-row reveal-item">
+                <div class="result-row is-visible">
                     <div class="result-label">Barcode</div>
                     <div class="result-value">${escapeHtml(request.barcode ?? data.barcode)}</div>
                 </div>
-                <div class="result-row reveal-item" style="--reveal-delay: 70ms">
+                <div class="result-row is-visible">
                     <div class="result-label">Status</div>
                     <div class="result-value">${escapeHtml(data.message ?? 'Deleted')}</div>
                 </div>
             </div>
-        </div>`;
-        armResultReveal();
+        </div>`);
         form?.reset();
         setRegisterMode();
         collapseRegisterPanel();
-        pulseElement(resultPanel, 'is-success-pulse');
         vibrate([35, 35, 55]);
-        scrollResultIntoView();
         return;
     }
 
@@ -197,16 +201,15 @@ function showRegisterResult(data, action = 'register') {
         ['Address', data.address],
     ];
 
-    barcodeResult.innerHTML = `<div class="register-success">
+    renderStableResult(`<div class="register-success">
         <div class="success-ribbon">${action === 'update' ? 'Updated' : 'Registered'}</div>
         <div class="result-grid">${rows.map(([label, value], index) => `
-            <div class="result-row reveal-item" style="--reveal-delay: ${index * 70}ms">
+            <div class="result-row is-visible">
                 <div class="result-label">${escapeHtml(label)}</div>
                 <div class="result-value">${escapeHtml(value)}</div>
             </div>
         `).join('')}</div>
-    </div>`;
-    armResultReveal();
+    </div>`);
 }
 
 function showRecordTable(records, limit = null, label = 'All records') {
@@ -232,6 +235,7 @@ function showRecordTable(records, limit = null, label = 'All records') {
                     <th>Katakana</th>
                     <th>Address</th>
                     <th>Added</th>
+                    ${canEdit ? '<th>Action</th>' : ''}
                 </tr>
             </thead>
             <tbody>
@@ -244,6 +248,7 @@ function showRecordTable(records, limit = null, label = 'All records') {
                         <td data-label="Katakana">${escapeHtml(record.katakana)}</td>
                         <td data-label="Address">${escapeHtml(record.address)}</td>
                         <td data-label="Added">${escapeHtml(record.addedDateTime)}</td>
+                        ${canEdit ? `<td data-label="Action"><button class="mini-delete" type="button" data-delete-barcode="${escapeHtml(record.barcode)}">Delete</button></td>` : ''}
                     </tr>
                 `).join('')}
             </tbody>
@@ -357,6 +362,8 @@ function isPanelCollapsed(panel) {
 }
 
 function setRegisterMode() {
+    selectedRecord = null;
+
     if (!saveRecordButton) {
         return;
     }
@@ -374,6 +381,8 @@ function setEditMode(record) {
     if (!canEdit || !form) {
         return;
     }
+
+    selectedRecord = record;
 
     form.querySelector('input[name="barcode"]').value = record.barcode ?? '';
     form.querySelector('input[name="name"]').value = record.name ?? '';
@@ -393,6 +402,29 @@ function setEditMode(record) {
 
     expandRegisterPanel('Edit');
     pulseElement(registerPanel, 'is-success-pulse');
+}
+
+function requestDelete(barcode) {
+    const clean = cleanBarcode(barcode);
+
+    if (!clean || !canEdit || !deleteRecordButton) {
+        return;
+    }
+
+    if (!window.confirm(`Delete barcode ${clean}?`)) {
+        return;
+    }
+
+    barcodeInput.value = clean;
+    deleteRecordButton.disabled = true;
+    setStatus('Deleting');
+
+    sendRequest('delete', deleteRecordButton).catch((error) => {
+        barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
+        setStatus('Error', true);
+        deleteRecordButton.disabled = false;
+        form?.classList.remove('is-searching');
+    });
 }
 
 function expandRegisterPanel(status = 'Register') {
@@ -541,28 +573,18 @@ registerToggle?.addEventListener('click', () => {
 });
 
 deleteRecordButton?.addEventListener('click', () => {
-    const barcode = cleanBarcode(barcodeInput?.value);
-
-    if (!barcode || !canEdit) {
-        return;
-    }
-
-    if (!window.confirm(`Delete barcode ${barcode}?`)) {
-        return;
-    }
-
-    deleteRecordButton.disabled = true;
-    setStatus('Deleting');
-
-    sendRequest('delete', deleteRecordButton).catch((error) => {
-        barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
-        setStatus('Error', true);
-        deleteRecordButton.disabled = false;
-        form?.classList.remove('is-searching');
-    });
+    requestDelete(selectedRecord?.barcode ?? barcodeInput?.value);
 });
 
 barcodeResult?.addEventListener('click', (event) => {
+    const deleteButton = event.target.closest('[data-delete-barcode]');
+
+    if (deleteButton) {
+        event.stopPropagation();
+        requestDelete(deleteButton.dataset.deleteBarcode);
+        return;
+    }
+
     const target = event.target.closest('[data-edit-record]');
 
     if (!target || !canEdit) {

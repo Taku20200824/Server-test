@@ -323,7 +323,7 @@ textarea:focus-visible {
 }
 
 .iris-form.is-searching > label:first-child::before {
-    animation: search-shimmer 1.05s ease-in-out infinite;
+    animation: -shimmer 1.05s ease-in-out infinite;
 }
 
 .iris-form > label:first-child input {
@@ -1159,6 +1159,38 @@ textarea:focus {
     box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
+.mini-delete {
+    min-height: 30px;
+    padding: 0 12px;
+    border: 1px solid rgba(220, 38, 38, .22);
+    border-radius: 999px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, .7);
+    color: #dc2626;
+    font-size: .74rem;
+    font-weight: 820;
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    transition: transform .16s ease, background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.mini-delete:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(145deg, #ef4444, #dc2626);
+    color: #fff;
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md);
+}
+
+:root[data-theme='dark'] .mini-delete {
+    border-color: rgba(248, 113, 113, .28);
+    background: rgba(30, 30, 30, .72);
+    color: #fca5a5;
+}
+
+:root[data-theme='dark'] .mini-delete:hover {
+    background: linear-gradient(145deg, #f87171, #e0473f);
+    color: #1a0707;
+}
+
 .records-table tbody tr:hover td {
     background: var(--accent-soft);
 }
@@ -1500,7 +1532,8 @@ textarea:focus {
 
     .records-table td:nth-child(5),
     .records-table td:nth-child(6),
-    .records-table td:nth-child(7) {
+    .records-table td:nth-child(7),
+    .records-table td:nth-child(8) {
         grid-column: 1 / -1;
     }
 }
@@ -1642,6 +1675,67 @@ textarea:focus {
     100% {
         transform: scale(1);
         filter: brightness(1);
+    }
+}
+
+/* Performance pass: keep the white glass/shadow look, remove heavy motion. */
+body::before {
+    display: none;
+}
+
+.tool-panel,
+.result-panel,
+.login-panel,
+.register-fields:not(.is-collapsed),
+.scanner-panel:not(.is-collapsed),
+.result-panel.is-success-pulse,
+.success-ribbon,
+.reveal-row.is-visible,
+.reveal-item,
+.result-alert,
+.empty-state,
+.table-wrap {
+    animation: none !important;
+}
+
+.reveal-item,
+.result-alert,
+.empty-state,
+.table-wrap,
+.records-table tbody tr {
+    opacity: 1;
+    transform: none;
+}
+
+.tool-panel,
+.result-panel,
+.register-fields,
+.scanner-panel,
+.header-meta span,
+.header-meta button,
+.button,
+.ghost-button,
+.result-grid,
+.table-wrap,
+.login-panel {
+    backdrop-filter: blur(14px) saturate(118%);
+    -webkit-backdrop-filter: blur(14px) saturate(118%);
+}
+
+@media (max-width: 720px) {
+    .tool-panel,
+    .result-panel,
+    .register-fields,
+    .scanner-panel,
+    .header-meta span,
+    .header-meta button,
+    .button,
+    .ghost-button,
+    .result-grid,
+    .table-wrap,
+    .login-panel {
+        backdrop-filter: blur(8px) saturate(110%);
+        -webkit-backdrop-filter: blur(8px) saturate(110%);
     }
 }
 
