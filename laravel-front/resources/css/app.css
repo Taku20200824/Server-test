@@ -1739,6 +1739,49 @@ body::before {
     }
 }
 
+/* Result success/delete state sizing */
+.register-success {
+    align-items: start;
+    gap: 14px;
+}
+
+.register-success .success-ribbon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.register-success .result-grid {
+    width: 100%;
+    gap: 8px;
+}
+
+.register-success .result-row {
+    min-height: 58px;
+    padding: 12px 16px;
+}
+
+@media (max-width: 560px) {
+    .register-success .success-ribbon {
+        min-height: 30px;
+        padding: 0 12px;
+        font-size: .7rem;
+    }
+
+    .register-success .result-row {
+        min-height: 0;
+        padding: 10px 12px;
+    }
+}
+
 @keyframes ribbon-pulse {
     0%,
     100% {
