@@ -40,7 +40,7 @@
                     <h1></h1>
                 </div>
                 <div class="header-meta">
-                    <button class="user-pill" type="button" data-account-toggle aria-expanded="{{ session('account_updated') || $errors->account->any() ? 'true' : 'false' }}">
+                    <button class="user-pill" type="button" data-account-toggle aria-expanded="{{ session('account_updated') || session('csv_import') || $errors->account->any() || $errors->csv->any() ? 'true' : 'false' }}">
                         <span class="user-name">{{ $loginName }}</span>
                         <span class="role-chip" data-i18n="{{ $isAdmin ? 'roleAdmin' : 'roleViewer' }}">{{ $isAdmin ? 'Admin' : 'Viewer' }}</span>
                     </button>
@@ -63,7 +63,7 @@
                 </div>
             </header>
 
-            <section class="account-panel {{ session('account_updated') || $errors->account->any() ? '' : 'is-collapsed' }}" data-account-panel aria-hidden="{{ session('account_updated') || $errors->account->any() ? 'false' : 'true' }}">
+            <section class="account-panel {{ session('account_updated') || session('csv_import') || $errors->account->any() || $errors->csv->any() ? '' : 'is-collapsed' }}" data-account-panel aria-hidden="{{ session('account_updated') || session('csv_import') || $errors->account->any() || $errors->csv->any() ? 'false' : 'true' }}">
                 <div>
                     <p class="eyebrow" data-i18n="accountSettings">Account settings</p>
                     <h2>{{ $loginUser }}</h2>
@@ -94,6 +94,31 @@
                         <button class="button success" type="submit" data-i18n="saveSettings">Save settings</button>
                     </div>
                 </form>
+                @if ($isAdmin)
+                    <div class="csv-panel">
+                        <div>
+                            <p class="eyebrow" data-i18n="csvTools">CSV tools</p>
+                            <p class="signup-note" data-i18n="csvNote">Download or upload IRIS records.</p>
+                        </div>
+                        @if (session('csv_import'))
+                            <div class="result-alert is-visible">{{ session('csv_import') }}</div>
+                        @endif
+                        @if ($errors->csv->any())
+                            <div class="result-alert is-visible">{{ $errors->csv->first() }}</div>
+                        @endif
+                        <div class="csv-actions">
+                            <a class="button" href="{{ route('iris.csv.download') }}" data-i18n="downloadCsv">Download CSV</a>
+                            <form method="POST" action="{{ route('iris.csv.upload') }}" enctype="multipart/form-data">
+                                @csrf
+                                <label class="file-button">
+                                    <span data-i18n="chooseCsv">Choose CSV</span>
+                                    <input type="file" name="csv_file" accept=".csv,text/csv" required>
+                                </label>
+                                <button class="button success" type="submit" data-i18n="uploadCsv">Upload CSV</button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
             </section>
 
             <section class="workspace">

@@ -25,9 +25,13 @@ const languageOptions = document.querySelectorAll('[data-language-option]');
 const resultPanel = document.querySelector('.result-panel');
 const accountToggle = document.querySelector('[data-account-toggle]');
 const accountPanel = document.querySelector('[data-account-panel]');
+const signupToggle = document.querySelector('[data-signup-toggle]');
+const signupPanel = document.querySelector('[data-signup-panel]');
+const signupForm = signupPanel?.querySelector('form');
 const saveRecordButton = form?.querySelector('[data-save-record]');
 const deleteRecordButton = form?.querySelector('[data-delete-record]');
 const canEdit = document.querySelector('meta[name="iris-can-edit"]')?.content === '1';
+
 
 const codeReader = new BrowserMultiFormatReader();
 let scannerControls = null;
@@ -114,7 +118,7 @@ const translations = {
         username: 'ユーザー名',
         password: 'パスワード',
         createAccount: 'アカウント作成',
-        accountRule: '4桁ID。9で終わるIDは管理者になります。',
+        accountRule: '4桁　ID。',
         accountId: 'アカウントID',
         registerAccount: 'アカウント登録',
         accountSettings: 'アカウント設定',
@@ -122,6 +126,11 @@ const translations = {
         newPassword: '新しいパスワード',
         confirmPassword: 'パスワード確認',
         saveSettings: '設定を保存',
+        csvTools: 'CSVツール',
+        csvNote: 'IRISレコードをダウンロードまたはアップロードします。',
+        downloadCsv: 'CSVダウンロード',
+        uploadCsv: 'CSVアップロード',
+        chooseCsv: 'CSVを選択',
     },
     en: {
         darkMode: 'Dark mode',
@@ -184,7 +193,7 @@ const translations = {
         username: 'Username',
         password: 'Password',
         createAccount: 'Create account',
-        accountRule: '4 digit ID. IDs ending in 9 become admin.',
+        accountRule: '4 digit ID.',
         accountId: 'Account ID',
         registerAccount: 'Register account',
         accountSettings: 'Account settings',
@@ -192,6 +201,11 @@ const translations = {
         newPassword: 'New password',
         confirmPassword: 'Confirm password',
         saveSettings: 'Save settings',
+        csvTools: 'CSV tools',
+        csvNote: 'Download or upload IRIS records.',
+        downloadCsv: 'Download CSV',
+        uploadCsv: 'Upload CSV',
+        chooseCsv: 'Choose CSV',
     },
     mn: {
         darkMode: 'Харанхуй',
@@ -254,7 +268,7 @@ const translations = {
         username: 'Нэвтрэх нэр',
         password: 'Нууц үг',
         createAccount: 'Аккаунт үүсгэх',
-        accountRule: '4 оронтой ID. 9-өөр төгсвөл admin болно.',
+        accountRule: '4 оронтой ID.',
         accountId: 'Аккаунт ID',
         registerAccount: 'Аккаунт бүртгэх',
         accountSettings: 'Аккаунтын тохиргоо',
@@ -262,6 +276,11 @@ const translations = {
         newPassword: 'Шинэ нууц үг',
         confirmPassword: 'Нууц үг давтах',
         saveSettings: 'Тохиргоо хадгалах',
+        csvTools: 'CSV хэрэгсэл',
+        csvNote: 'IRIS датаг CSV-ээр татах эсвэл оруулах.',
+        downloadCsv: 'CSV татах',
+        uploadCsv: 'CSV оруулах',
+        chooseCsv: 'CSV сонгох',
     },
 };
 
@@ -683,7 +702,35 @@ function collapsePanel(panel) {
 function isPanelCollapsed(panel) {
     return panel?.classList.contains('is-collapsed');
 }
+function toggleSignupPanel() {
+    if (!signupPanel) {
+        return;
+    }
 
+    const willOpen = isPanelCollapsed(signupPanel);
+
+    if (willOpen) {
+        expandPanel(signupPanel);
+
+        window.setTimeout(() => {
+            signupPanel.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
+
+            signupPanel.querySelector('input[name="username"]')?.focus();
+        }, 160);
+    } else {
+        collapsePanel(signupPanel);
+    }
+
+    if (signupToggle) {
+        signupToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+        // Button text-г Close болгохгүй. Үргэлж "Аккаунт үүсгэх" хэвээр байна.
+        signupToggle.textContent = t('createAccount');
+    }
+}
 function setRegisterMode() {
     selectedRecord = null;
 
@@ -893,6 +940,14 @@ cameraToggle?.addEventListener('click', () => {
 
 registerToggle?.addEventListener('click', () => {
     toggleRegisterPanel();
+});
+signupToggle?.addEventListener('click', () => {
+    toggleSignupPanel();
+});
+
+signupForm?.addEventListener('submit', () => {
+    expandPanel(signupPanel);
+    signupToggle?.setAttribute('aria-expanded', 'true');
 });
 
 accountToggle?.addEventListener('click', () => {

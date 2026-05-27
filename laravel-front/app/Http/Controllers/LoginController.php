@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Support\IrisAccountStore;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -26,9 +25,11 @@ class LoginController extends Controller
         ]);
 
         $store = new IrisAccountStore();
-        $account = $store->find($credentials['username']);
 
-        if ($account === null || ! $this->passwordMatches($account, $credentials['password'])) {
+        $username = $store->cleanUsername($credentials['username']);
+        $account = $store->verify($username, $credentials['password']);
+
+        if ($account === null) {
             return back()
                 ->withInput($request->only('username'))
                 ->withErrors(['username' => 'Username or password is incorrect.']);
@@ -36,9 +37,9 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
         $request->session()->put('iris_logged_in', true);
-        $request->session()->put('iris_login_user', $credentials['username']);
-        $request->session()->put('iris_login_name', $account['display_name'] ?? $credentials['username']);
-        $request->session()->put('iris_login_role', $account['role']);
+        $request->session()->put('iris_login_user', $username);
+        $request->session()->put('iris_login_name', $account['display_name'] ?? $username);
+        $request->session()->put('iris_login_role', $account['role'] ?? $store->roleForUsername($username));
 
         return redirect()->intended(route('iris.index'));
     }
@@ -50,7 +51,7 @@ class LoginController extends Controller
             'display_name' => ['nullable', 'string', 'max:80'],
             'password' => ['required', 'string', 'min:4', 'confirmed'],
         ], [
-            'username.regex' => 'Account ID must be 4 digits. IDs ending in 9 become admin accounts.',
+            'username.regex' => 'Account ID must be 4 digits.',
         ]);
 
         try {
@@ -67,7 +68,8 @@ class LoginController extends Controller
 
         return back()
             ->withInput(['username' => $validated['username']])
-            ->with('account_registered', 'Account registered. You can log in now.');
+            ->with('account_registered', 'Account registered. You can log in now.')
+            ->with('signup_open', true);
     }
 
     public function updateAccount(Request $request)
@@ -79,11 +81,17 @@ class LoginController extends Controller
             'password' => ['nullable', 'string', 'min:4', 'confirmed'],
         ]);
 
-        $account = (new IrisAccountStore())->update(
-            $username,
-            $validated['display_name'] ?? $username,
-            $validated['password'] ?? null
-        );
+        try {
+            $account = (new IrisAccountStore())->update(
+                $username,
+                $validated['display_name'] ?? $username,
+                $validated['password'] ?? null
+            );
+        } catch (\RuntimeException $exception) {
+            throw ValidationException::withMessages([
+                'display_name' => $exception->getMessage(),
+            ])->errorBag('account');
+        }
 
         $request->session()->put('iris_login_name', $account['display_name']);
 
@@ -96,14 +104,5 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
-    }
-
-    private function passwordMatches(array $account, string $password): bool
-    {
-        if (isset($account['password_hash'])) {
-            return Hash::check($password, $account['password_hash']);
-        }
-
-        return hash_equals((string) ($account['password'] ?? ''), $password);
     }
 }

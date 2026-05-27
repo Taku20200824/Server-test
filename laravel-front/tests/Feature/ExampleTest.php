@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -34,6 +35,8 @@ class ExampleTest extends TestCase
 
     public function test_login_accepts_configured_credentials(): void
     {
+        Storage::fake('local');
+
         config([
             'services.iris_login.user' => 'admin',
             'services.iris_login.password' => 'secret',
@@ -51,6 +54,8 @@ class ExampleTest extends TestCase
 
     public function test_login_accepts_viewer_credentials(): void
     {
+        Storage::fake('local');
+
         config([
             'services.iris_login.viewer_user' => 'taku',
             'services.iris_login.viewer_password' => 'taku1234',
@@ -379,6 +384,63 @@ class ExampleTest extends TestCase
         Http::assertSent(fn ($request) => $request->method() === 'POST'
             && $request->url() === 'http://127.0.0.1:52773/test/api/delete'
             && $request['barcode'] === '000008');
+    }
+
+    public function test_admin_can_download_records_as_csv(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/list' => Http::response([
+                'records' => [
+                    ['barcode' => '000001', 'name' => 'NARUTO', 'kanji' => 'ナルト', 'katakana' => 'ナルト', 'address' => '大阪', 'addedDateTime' => '2026-05-27 10:00:00'],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->withSession($this->adminSession())->get('/iris-test/export.csv');
+
+        $response
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->assertStringContainsString('barcode,name,kanji,katakana,address,addedDateTime', $response->streamedContent());
+    }
+
+    public function test_admin_can_upload_records_from_csv(): void
+    {
+        config([
+            'services.iris.url' => '127.0.0.1',
+            'services.iris.port' => '52773',
+            'services.iris.api_path' => '/test',
+            'services.iris.user' => 'tester',
+            'services.iris.password' => 'secret',
+        ]);
+
+        Http::fake([
+            '127.0.0.1:52773/test/api/register' => Http::response(['message' => 'Registered'], 200),
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent(
+            'records.csv',
+            "barcode,name,kanji,katakana,address\n000011,HINATA,日向,ヒナタ,京都\n"
+        );
+
+        $this->withSession($this->adminSession())
+            ->post('/iris-test/import.csv', ['csv_file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('csv_import');
+
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && $request->url() === 'http://127.0.0.1:52773/test/api/register'
+            && $request['barcode'] === '000011'
+            && $request['name'] === 'HINATA');
     }
 
     public function test_viewer_cannot_register_update_or_delete_records(): void

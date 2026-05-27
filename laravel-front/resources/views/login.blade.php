@@ -68,12 +68,25 @@
                     @endif
 
                     <button class="button primary" type="submit" data-i18n="login">Login</button>
+                    <button
+                        class="button"
+                        type="button"
+                        data-signup-toggle
+                        aria-expanded="{{ session('account_registered') || $errors->register->any() ? 'true' : 'false' }}"
+                        data-i18n="createAccount"
+                    >
+                        Create account
+                    </button>
                 </form>
 
-                <section class="signup-panel">
+            <section
+                class="signup-panel {{ session('account_registered') || $errors->register->any() ? '' : 'is-collapsed' }}"
+                data-signup-panel
+                aria-hidden="{{ session('account_registered') || $errors->register->any() ? 'false' : 'true' }}"
+            >
                     <div>
                         <p class="eyebrow" data-i18n="createAccount">Create account</p>
-                        <p class="signup-note" data-i18n="accountRule">4 digit ID. IDs ending in 9 become admin.</p>
+                        <p class="signup-note" data-i18n="accountRule">4 digit ID.</p>
                     </div>
 
                     @if (session('account_registered'))

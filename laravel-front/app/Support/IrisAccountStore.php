@@ -15,6 +15,8 @@ class IrisAccountStore
 
     public function find(string $username): ?array
     {
+        $username = $this->cleanUsername($username);
+
         return $this->all()[$username] ?? null;
     }
 
@@ -22,11 +24,20 @@ class IrisAccountStore
     {
         $username = $this->cleanUsername($username);
 
+        if ($username === '') {
+            throw new \RuntimeException('Account ID is required.');
+        }
+
+        if ($password === '') {
+            throw new \RuntimeException('Password is required.');
+        }
+
         if (isset($this->all()[$username])) {
             throw new \RuntimeException('Account ID already exists. Please change the ID.');
         }
 
         $accounts = $this->storedAccounts();
+
         $accounts[$username] = [
             'display_name' => trim($displayName) !== '' ? trim($displayName) : $username,
             'password_hash' => Hash::make($password),
@@ -41,6 +52,11 @@ class IrisAccountStore
     public function update(string $username, string $displayName, ?string $password = null): array
     {
         $username = $this->cleanUsername($username);
+
+        if ($username === '') {
+            throw new \RuntimeException('Account ID is required.');
+        }
+
         $account = $this->find($username);
 
         if ($account === null) {
@@ -48,6 +64,7 @@ class IrisAccountStore
         }
 
         $stored = $this->storedAccounts();
+
         $next = [
             'display_name' => trim($displayName) !== '' ? trim($displayName) : $username,
             'role' => $account['role'] ?? $this->roleForUsername($username),
@@ -57,14 +74,46 @@ class IrisAccountStore
             $next['password_hash'] = Hash::make($password);
         } elseif (isset($account['password_hash'])) {
             $next['password_hash'] = $account['password_hash'];
+        } elseif (isset($account['password'])) {
+            $next['password'] = (string) $account['password'];
         } else {
-            $next['password_hash'] = Hash::make((string) ($account['password'] ?? ''));
+            $next['password_hash'] = Hash::make('');
         }
 
         $stored[$username] = $next;
+
         $this->saveStoredAccounts($stored);
 
         return $next + ['username' => $username];
+    }
+
+    public function verify(string $username, string $password): ?array
+    {
+        $username = $this->cleanUsername($username);
+
+        if ($username === '' || $password === '') {
+            return null;
+        }
+
+        $account = $this->find($username);
+
+        if ($account === null) {
+            return null;
+        }
+
+        if (isset($account['password_hash'])) {
+            if (Hash::check($password, $account['password_hash'])) {
+                return $account + ['username' => $username];
+            }
+
+            return null;
+        }
+
+        if (isset($account['password']) && hash_equals((string) $account['password'], $password)) {
+            return $account + ['username' => $username];
+        }
+
+        return null;
     }
 
     public function roleForUsername(string $username): string
@@ -79,18 +128,31 @@ class IrisAccountStore
 
     private function defaultAccounts(): array
     {
-        return [
-            (string) config('services.iris_login.user') => [
-                'display_name' => (string) config('services.iris_login.user'),
-                'password' => (string) config('services.iris_login.password'),
+        $accounts = [];
+
+        $adminUser = (string) config('services.iris_login.user');
+        $adminPassword = (string) config('services.iris_login.password');
+
+        if ($adminUser !== '') {
+            $accounts[$adminUser] = [
+                'display_name' => $adminUser,
+                'password' => $adminPassword,
                 'role' => 'admin',
-            ],
-            (string) config('services.iris_login.viewer_user') => [
-                'display_name' => (string) config('services.iris_login.viewer_user'),
-                'password' => (string) config('services.iris_login.viewer_password'),
+            ];
+        }
+
+        $viewerUser = (string) config('services.iris_login.viewer_user');
+        $viewerPassword = (string) config('services.iris_login.viewer_password');
+
+        if ($viewerUser !== '') {
+            $accounts[$viewerUser] = [
+                'display_name' => $viewerUser,
+                'password' => $viewerPassword,
                 'role' => 'viewer',
-            ],
-        ];
+            ];
+        }
+
+        return $accounts;
     }
 
     private function storedAccounts(): array
@@ -101,14 +163,25 @@ class IrisAccountStore
             return [];
         }
 
-        $accounts = json_decode(Storage::disk('local')->get($path), true);
+        $json = Storage::disk('local')->get($path);
+        $accounts = json_decode($json, true);
 
         return is_array($accounts) ? $accounts : [];
     }
 
     private function saveStoredAccounts(array $accounts): void
     {
-        Storage::disk('local')->put($this->path(), json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $path = $this->path();
+        $directory = dirname($path);
+
+        if ($directory !== '.' && ! Storage::disk('local')->exists($directory)) {
+            Storage::disk('local')->makeDirectory($directory);
+        }
+
+        Storage::disk('local')->put(
+            $path,
+            json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
     }
 
     private function path(): string

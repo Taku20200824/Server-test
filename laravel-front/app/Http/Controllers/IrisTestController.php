@@ -7,6 +7,7 @@ use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IrisTestController extends Controller
 {
@@ -183,6 +184,103 @@ class IrisTestController extends Controller
         ], 'post');
     }
 
+    public function downloadCsv(Request $request): StreamedResponse
+    {
+        if (! $this->isAdmin($request)) {
+            abort(403);
+        }
+
+        if ($this->configurationError() !== null) {
+            abort(422, $this->configurationError());
+        }
+
+        try {
+            $records = $this->fetchRecords()['records'];
+        } catch (ConnectionException $exception) {
+            abort(502, 'IRIS server could not be reached.');
+        }
+
+        $filename = 'iris-records-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($records) {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['barcode', 'name', 'kanji', 'katakana', 'address', 'addedDateTime']);
+
+            foreach ($records as $record) {
+                fputcsv($output, [
+                    $record['barcode'] ?? '',
+                    $record['name'] ?? '',
+                    $record['kanji'] ?? '',
+                    $record['katakana'] ?? '',
+                    $record['address'] ?? '',
+                    $record['addedDateTime'] ?? '',
+                ]);
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function uploadCsv(Request $request)
+    {
+        if (! $this->isAdmin($request)) {
+            return $this->adminOnlyResponse();
+        }
+
+        if ($this->configurationError() !== null) {
+            return back()->withErrors([
+                'csv_file' => $this->configurationError(),
+            ], 'csv');
+        }
+
+        $validated = $request->validateWithBag('csv', [
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ]);
+
+        $rows = $this->readCsvRows($validated['csv_file']->getRealPath());
+        $imported = 0;
+        $failed = [];
+
+        foreach ($rows as $index => $row) {
+            $payload = [
+                'barcode' => $this->cleanBarcode($row['barcode'] ?? ''),
+                'name' => trim((string) ($row['name'] ?? '')),
+                'kanji' => trim((string) ($row['kanji'] ?? '')),
+                'katakana' => trim((string) ($row['katakana'] ?? '')),
+                'address' => trim((string) ($row['address'] ?? '')),
+            ];
+
+            if ($payload['barcode'] === '' || $payload['name'] === '') {
+                $failed[] = 'row '.($index + 2).': barcode/name required';
+                continue;
+            }
+
+            $fieldErrors = $this->validateNameScripts($payload);
+
+            if ($fieldErrors !== []) {
+                $failed[] = 'row '.($index + 2).': kanji/katakana check failed';
+                continue;
+            }
+
+            try {
+                $response = $this->postIrisRegister($payload);
+            } catch (ConnectionException $exception) {
+                $failed[] = 'row '.($index + 2).': IRIS connection failed';
+                continue;
+            }
+
+            if ($response->successful()) {
+                $imported++;
+            } else {
+                $failed[] = 'row '.($index + 2).': IRIS '.$response->status();
+            }
+        }
+
+        return back()->with('csv_import', sprintf('CSV imported: %d, failed: %d%s', $imported, count($failed), $failed === [] ? '' : ' ('.implode('; ', array_slice($failed, 0, 4)).')'));
+    }
+
     private function validateNameScripts(array $validated): array
     {
         $errors = [];
@@ -222,6 +320,15 @@ class IrisTestController extends Controller
         $data = $response->json();
 
         return $response->successful() && is_array($data) && (bool) ($data['found'] ?? false);
+    }
+
+    private function postIrisRegister(array $payload)
+    {
+        return Http::withBasicAuth(config('services.iris.user'), config('services.iris.password'))
+            ->acceptJson()
+            ->timeout((int) config('services.iris.timeout', 10))
+            ->asJson()
+            ->post($this->irisBaseUrl().'/api/register', $payload);
     }
 
     private function callIris(string $path, array $meta = [], string $method = 'get')
@@ -270,46 +377,7 @@ class IrisTestController extends Controller
         }
 
         try {
-            $listTimeout = max(1, (int) config('services.iris.list_timeout', 2));
-            $request = Http::withBasicAuth(config('services.iris.user'), config('services.iris.password'))
-                ->acceptJson()
-                ->timeout($listTimeout);
-
-            $listUrl = $this->irisBaseUrl().'/api/list';
-            $listResponse = $request->get($listUrl);
-            $listData = $listResponse->json();
-
-            if ($listResponse->successful() && is_array($listData) && array_key_exists('records', $listData)) {
-                return response()->json([
-                    'called_url' => $listUrl,
-                    'iris_status' => $listResponse->status(),
-                    'request' => ['barcode' => ''],
-                    'data' => $listData,
-                ]);
-            }
-
-            $fallbackLimit = max(1, min((int) config('services.iris.list_fallback_max', 80), 500));
-            $searched = collect(range(1, $fallbackLimit))
-                ->map(fn ($id) => str_pad((string) $id, 6, '0', STR_PAD_LEFT))
-                ->all();
-
-            $responses = Http::pool(fn (Pool $pool) => collect($searched)
-                ->map(fn ($barcode) => $pool
-                    ->withBasicAuth(config('services.iris.user'), config('services.iris.password'))
-                    ->acceptJson()
-                    ->timeout($listTimeout)
-                    ->get($this->irisBaseUrl().'/api/search/'.rawurlencode($barcode)))
-                ->all());
-
-            $records = [];
-
-            foreach ($responses as $response) {
-                $data = $response->json();
-
-                if ($response->successful() && is_array($data) && ($data['found'] ?? false)) {
-                    $records[] = $data;
-                }
-            }
+            $result = $this->fetchRecords();
         } catch (ConnectionException $exception) {
             return response()->json([
                 'message' => 'IRIS server could not be reached.',
@@ -318,6 +386,61 @@ class IrisTestController extends Controller
         }
 
         return response()->json([
+            'called_url' => $result['called_url'],
+            'iris_status' => $result['iris_status'],
+            'request' => $result['request'],
+            'data' => [
+                'count' => count($result['records']),
+                'records' => $result['records'],
+            ],
+        ]);
+    }
+
+    private function fetchRecords(): array
+    {
+        $listUrl = $this->irisBaseUrl().'/api/list';
+
+        $listTimeout = max(1, (int) config('services.iris.list_timeout', 2));
+        $request = Http::withBasicAuth(config('services.iris.user'), config('services.iris.password'))
+            ->acceptJson()
+            ->timeout($listTimeout);
+
+        $listResponse = $request->get($listUrl);
+        $listData = $listResponse->json();
+
+        if ($listResponse->successful() && is_array($listData) && is_array($listData['records'] ?? null)) {
+            return [
+                'called_url' => $listUrl,
+                'iris_status' => $listResponse->status(),
+                'request' => ['barcode' => ''],
+                'records' => $listData['records'],
+            ];
+        }
+
+        $fallbackLimit = max(1, min((int) config('services.iris.list_fallback_max', 80), 500));
+        $searched = collect(range(1, $fallbackLimit))
+            ->map(fn ($id) => str_pad((string) $id, 6, '0', STR_PAD_LEFT))
+            ->all();
+
+        $responses = Http::pool(fn (Pool $pool) => collect($searched)
+            ->map(fn ($barcode) => $pool
+                ->withBasicAuth(config('services.iris.user'), config('services.iris.password'))
+                ->acceptJson()
+                ->timeout($listTimeout)
+                ->get($this->irisBaseUrl().'/api/search/'.rawurlencode($barcode)))
+            ->all());
+
+        $records = [];
+
+        foreach ($responses as $response) {
+            $data = $response->json();
+
+            if ($response->successful() && is_array($data) && ($data['found'] ?? false)) {
+                $records[] = $data;
+            }
+        }
+
+        return [
             'called_url' => $listUrl,
             'iris_status' => $listResponse->status(),
             'request' => [
@@ -326,11 +449,35 @@ class IrisTestController extends Controller
                 'fallback_limit' => count($searched),
                 'fallback_search' => $searched,
             ],
-            'data' => [
-                'count' => count($records),
-                'records' => $records,
-            ],
-        ]);
+            'records' => $records,
+        ];
+    }
+
+    private function readCsvRows(string $path): array
+    {
+        $handle = fopen($path, 'r');
+        $header = null;
+        $rows = [];
+
+        while (($line = fgetcsv($handle)) !== false) {
+            if ($header === null) {
+                $header = array_map(fn ($value) => Str::of((string) $value)->lower()->trim()->toString(), $line);
+                $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0] ?? '');
+                continue;
+            }
+
+            $row = [];
+
+            foreach ($header as $index => $name) {
+                $row[$name] = $line[$index] ?? '';
+            }
+
+            $rows[] = $row;
+        }
+
+        fclose($handle);
+
+        return $rows;
     }
 
     private function nextBarcode(): string

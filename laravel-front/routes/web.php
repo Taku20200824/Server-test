@@ -19,5 +19,7 @@ Route::middleware([EnsureIrisAuthenticated::class])->group(function () {
     Route::post('/iris-test/register', [IrisTestController::class, 'register'])->name('iris.register');
     Route::post('/iris-test/update', [IrisTestController::class, 'update'])->name('iris.update');
     Route::post('/iris-test/delete', [IrisTestController::class, 'delete'])->name('iris.delete');
+    Route::get('/iris-test/export.csv', [IrisTestController::class, 'downloadCsv'])->name('iris.csv.download');
+    Route::post('/iris-test/import.csv', [IrisTestController::class, 'uploadCsv'])->name('iris.csv.upload');
     Route::post('/account/settings', [LoginController::class, 'updateAccount'])->name('account.update');
 });
