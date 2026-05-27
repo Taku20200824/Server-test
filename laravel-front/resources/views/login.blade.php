@@ -9,7 +9,10 @@
         <script>
             (() => {
                 const theme = localStorage.getItem('iris-theme') || 'light';
+                const language = localStorage.getItem('iris-language') || 'ja';
                 document.documentElement.dataset.theme = theme;
+                document.documentElement.dataset.language = language;
+                document.documentElement.lang = language === 'mn' ? 'mn' : language;
             })();
         </script>
 
@@ -30,21 +33,28 @@
     </head>
     <body>
         <main class="login-shell">
-            <button class="theme-float" type="button" data-theme-toggle>Dark mode</button>
+            <div class="login-controls">
+                <select class="language-select" data-language-select aria-label="Language">
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                    <option value="mn">Монгол</option>
+                </select>
+                <button class="theme-float" type="button" data-theme-toggle data-i18n="darkMode">Dark mode</button>
+            </div>
             <section class="login-card" aria-label="IRIS login">
                 <p class="eyebrow">IRIS Console</p>
-                <h1>Login</h1>
+                <h1 data-i18n="login">Login</h1>
 
                 <form method="POST" action="{{ route('login.submit') }}" class="login-form">
                     @csrf
 
                     <label>
-                        <span>Username</span>
+                        <span data-i18n="username">Username</span>
                         <input name="username" autocomplete="username" value="{{ old('username') }}" autofocus>
                     </label>
 
                     <label>
-                        <span>Password</span>
+                        <span data-i18n="password">Password</span>
                         <input name="password" type="password" autocomplete="current-password">
                     </label>
 
@@ -52,7 +62,7 @@
                         <div class="result-alert is-visible">{{ $errors->first() }}</div>
                     @endif
 
-                    <button class="button primary" type="submit">Login</button>
+                    <button class="button primary" type="submit" data-i18n="login">Login</button>
                 </form>
             </section>
         </main>

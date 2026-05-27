@@ -302,7 +302,7 @@ textarea:focus-visible {
     top: -25px;
     color: var(--accent);
     opacity: .85;
-    content: 'searchbar';
+    content: '';
     font-size: .66rem;
     font-weight: 820;
     letter-spacing: .08em;
@@ -1231,6 +1231,40 @@ textarea:focus {
     box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
 }
 
+.language-select {
+    min-height: 34px;
+    padding: 7px 34px 7px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--glass);
+    color: var(--ink);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    backdrop-filter: blur(22px) saturate(130%);
+    cursor: pointer;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 760;
+}
+
+.language-select:focus-visible {
+    outline: 3px solid var(--accent-soft);
+    outline-offset: 3px;
+}
+
+.login-controls {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 5;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.login-controls .theme-float {
+    position: static;
+}
+
 .login-card {
     position: relative;
     overflow: hidden;
@@ -1352,11 +1386,27 @@ textarea:focus {
         justify-content: center;
     }
 
-    .header-meta button {
+    .header-meta button,
+    .header-meta .language-select {
         min-height: 32px;
         padding: 6px 10px;
         font-size: 11px;
         font-weight: 760;
+    }
+
+    .login-controls {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .login-controls .theme-float,
+    .login-controls .language-select {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 11px;
     }
 
     .iris-form {

@@ -17,6 +17,7 @@ const cameraStop = document.querySelector('[data-camera-stop]');
 const cameraToggle = document.querySelector('[data-camera-toggle]');
 const scannerPanel = document.querySelector('[data-scanner-panel]');
 const themeToggle = document.querySelector('[data-theme-toggle]');
+const languageSelect = document.querySelector('[data-language-select]');
 const resultPanel = document.querySelector('.result-panel');
 const saveRecordButton = form?.querySelector('[data-save-record]');
 const deleteRecordButton = form?.querySelector('[data-delete-record]');
@@ -36,6 +37,225 @@ const routes = {
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 let selectedRecord = null;
 
+const translations = {
+    ja: {
+        darkMode: 'ダークモード',
+        whiteMode: 'ライトモード',
+        cameraScan: 'カメラスキャン',
+        logout: 'ログアウト',
+        roleAdmin: '管理者',
+        roleViewer: '閲覧者',
+        barcode: 'バーコード',
+        name: '名前',
+        kanji: '漢字',
+        katakana: 'カタカナ',
+        address: '住所',
+        delete: '削除',
+        save: '保存',
+        update: '更新',
+        camera: 'カメラ',
+        barcodeReader: 'バーコードリーダー',
+        stopped: '停止中',
+        scanning: '読み取り中',
+        found: '検出',
+        noCamera: 'カメラなし',
+        error: 'エラー',
+        startCamera: 'カメラ開始',
+        stopCamera: 'カメラ停止',
+        cameraNote: 'カメラで読み取るとバーコード欄に入り、検索します。',
+        search: '検索',
+        register: '登録',
+        clear: 'クリア',
+        response: '結果',
+        barcodeResult: 'バーコード結果',
+        noData: 'データがありません',
+        noRecords: 'レコードがありません',
+        allRecords: '全レコード',
+        recentRecords: '最近のレコード',
+        loadingData: '読み込み中',
+        savingData: '保存中',
+        sending: '送信中',
+        done: '完了',
+        ready: '準備完了',
+        edit: '編集',
+        deleting: '削除中',
+        deleted: '削除しました',
+        registered: '登録しました',
+        updated: '更新しました',
+        status: '状態',
+        no: 'No',
+        added: '追加日時',
+        action: '操作',
+        deleteConfirm: 'バーコード {barcode} を削除しますか？',
+        httpsNeeded: 'HTTPS が必要です',
+        openingSecure: '安全なカメラページを開いています...',
+        secureCameraHelp: 'Chrome でカメラを使うには HTTPS が必要です。警告が出たら詳細設定から進み、カメラを許可してください。',
+        cameraUnavailable: 'カメラ API が使えません。Chrome のサイト設定とカメラ権限を確認してください。',
+        cameraPermissionHelp: 'Chrome 設定 > プライバシーとセキュリティ > サイトの設定 > カメラで、このサイトを許可してください。',
+        pointCamera: 'バーコードにカメラを向けてください。',
+        scanned: '{barcode} を読み取りました',
+        nonJsonResponse: 'サーバーから JSON 以外の応答が返りました。',
+        login: 'ログイン',
+        username: 'ユーザー名',
+        password: 'パスワード',
+    },
+    en: {
+        darkMode: 'Dark mode',
+        whiteMode: 'White mode',
+        cameraScan: 'Camera scan',
+        logout: 'Logout',
+        roleAdmin: 'Admin',
+        roleViewer: 'Viewer',
+        barcode: 'Barcode',
+        name: 'Name',
+        kanji: 'Kanji',
+        katakana: 'Katakana',
+        address: 'Address',
+        delete: 'Delete',
+        save: 'Save',
+        update: 'Update',
+        camera: 'Camera',
+        barcodeReader: 'Barcode reader',
+        stopped: 'Stopped',
+        scanning: 'Scanning',
+        found: 'Found',
+        noCamera: 'No camera',
+        error: 'Error',
+        startCamera: 'Start Camera',
+        stopCamera: 'Stop Camera',
+        cameraNote: 'Camera fills the barcode field and runs Search.',
+        search: 'Search',
+        register: 'Register',
+        clear: 'Clear',
+        response: 'Response',
+        barcodeResult: 'Barcode result',
+        noData: 'No data',
+        noRecords: 'No records',
+        allRecords: 'All records',
+        recentRecords: 'recent records',
+        loadingData: 'Loading data',
+        savingData: 'Saving data',
+        sending: 'Sending',
+        done: 'Done',
+        ready: 'Ready',
+        edit: 'Edit',
+        deleting: 'Deleting',
+        deleted: 'Deleted',
+        registered: 'Registered',
+        updated: 'Updated',
+        status: 'Status',
+        no: 'No',
+        added: 'Added',
+        action: 'Action',
+        deleteConfirm: 'Delete barcode {barcode}?',
+        httpsNeeded: 'HTTPS needed',
+        openingSecure: 'Opening the secure camera page...',
+        secureCameraHelp: 'Chrome needs HTTPS for camera. If a warning appears, click Advanced, proceed, then allow Camera.',
+        cameraUnavailable: 'Camera API is unavailable. Check Chrome site settings and camera permissions.',
+        cameraPermissionHelp: 'Chrome Settings > Privacy and security > Site settings > Camera: allow this site and pick a camera device.',
+        pointCamera: 'Point the camera at a barcode.',
+        scanned: 'Scanned {barcode}',
+        nonJsonResponse: 'The server returned a non-JSON response.',
+        login: 'Login',
+        username: 'Username',
+        password: 'Password',
+    },
+    mn: {
+        darkMode: 'Харанхуй',
+        whiteMode: 'Цагаан',
+        cameraScan: 'Камер уншуулах',
+        logout: 'Гарах',
+        roleAdmin: 'Админ',
+        roleViewer: 'Харагч',
+        barcode: 'Бар код',
+        name: 'Нэр',
+        kanji: 'Канжи',
+        katakana: 'Катакана',
+        address: 'Хаяг',
+        delete: 'Устгах',
+        save: 'Хадгалах',
+        update: 'Шинэчлэх',
+        camera: 'Камер',
+        barcodeReader: 'Бар код уншигч',
+        stopped: 'Зогссон',
+        scanning: 'Уншиж байна',
+        found: 'Олдсон',
+        noCamera: 'Камер алга',
+        error: 'Алдаа',
+        startCamera: 'Камер асаах',
+        stopCamera: 'Камер унтраах',
+        cameraNote: 'Камер уншвал бар код талбарт орж Search ажиллана.',
+        search: 'Хайх',
+        register: 'Бүртгэх',
+        clear: 'Цэвэрлэх',
+        response: 'Хариу',
+        barcodeResult: 'Бар кодын үр дүн',
+        noData: 'Дата алга',
+        noRecords: 'Бичлэг алга',
+        allRecords: 'Бүх дата',
+        recentRecords: 'сүүлийн дата',
+        loadingData: 'Уншиж байна',
+        savingData: 'Хадгалж байна',
+        sending: 'Илгээж байна',
+        done: 'Болсон',
+        ready: 'Бэлэн',
+        edit: 'Засах',
+        deleting: 'Устгаж байна',
+        deleted: 'Устгасан',
+        registered: 'Бүртгэсэн',
+        updated: 'Шинэчилсэн',
+        status: 'Төлөв',
+        no: 'No',
+        added: 'Нэмсэн огноо',
+        action: 'Үйлдэл',
+        deleteConfirm: '{barcode} бар кодыг устгах уу?',
+        httpsNeeded: 'HTTPS хэрэгтэй',
+        openingSecure: 'Камерын secure хуудсыг нээж байна...',
+        secureCameraHelp: 'Chrome дээр камер ажиллуулахын тулд HTTPS хэрэгтэй. Анхааруулга гарвал Advanced дарж ороод Camera-г Allow болго.',
+        cameraUnavailable: 'Camera API ажиллахгүй байна. Chrome site settings болон camera permission шалга.',
+        cameraPermissionHelp: 'Chrome Settings > Privacy and security > Site settings > Camera дээр энэ сайтыг Allow болго.',
+        pointCamera: 'Камераа бар код руу чиглүүл.',
+        scanned: '{barcode} уншлаа',
+        nonJsonResponse: 'Сервер JSON биш хариу буцаалаа.',
+        login: 'Нэвтрэх',
+        username: 'Нэвтрэх нэр',
+        password: 'Нууц үг',
+    },
+};
+
+function currentLanguage() {
+    return localStorage.getItem('iris-language') || document.documentElement.dataset.language || 'ja';
+}
+
+function t(key, replacements = {}) {
+    const dictionary = translations[currentLanguage()] ?? translations.ja;
+    let text = dictionary[key] ?? translations.en[key] ?? key;
+
+    Object.entries(replacements).forEach(([name, value]) => {
+        text = text.replaceAll(`{${name}}`, value);
+    });
+
+    return text;
+}
+
+function setLanguage(language) {
+    const nextLanguage = translations[language] ? language : 'ja';
+
+    document.documentElement.dataset.language = nextLanguage;
+    document.documentElement.lang = nextLanguage === 'mn' ? 'mn' : nextLanguage;
+    localStorage.setItem('iris-language', nextLanguage);
+
+    if (languageSelect) {
+        languageSelect.value = nextLanguage;
+    }
+
+    document.querySelectorAll('[data-i18n]').forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+    });
+
+    setTheme(document.documentElement.dataset.theme || 'light');
+}
+
 function setTheme(theme) {
     const nextTheme = theme === 'dark' ? 'dark' : 'light';
 
@@ -44,7 +264,7 @@ function setTheme(theme) {
     localStorage.setItem('iris-theme', nextTheme);
 
     if (themeToggle) {
-        themeToggle.textContent = nextTheme === 'dark' ? 'White mode' : 'Dark mode';
+        themeToggle.textContent = nextTheme === 'dark' ? t('whiteMode') : t('darkMode');
     }
 
     window.setTimeout(() => {
@@ -53,6 +273,7 @@ function setTheme(theme) {
 }
 
 setTheme(localStorage.getItem('iris-theme') || document.documentElement.dataset.theme || 'light');
+setLanguage(currentLanguage());
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -104,7 +325,7 @@ function showBarcodeResult(payload) {
     const request = payload?.body?.request ?? {};
 
     if (Array.isArray(data?.records)) {
-        showRecordTable(data.records, null, 'All records');
+        showRecordTable(data.records, null, t('allRecords'));
         scrollResultIntoView();
         return;
     }
@@ -113,7 +334,7 @@ function showBarcodeResult(payload) {
         const message = payload?.body?.message;
         barcodeResult.innerHTML = message
             ? `<div class="result-alert">${escapeHtml(message)}</div>`
-            : '<p class="empty-state">No data</p>';
+            : `<p class="empty-state">${escapeHtml(t('noData'))}</p>`;
         armResultReveal();
         return;
     }
@@ -125,7 +346,7 @@ function showBarcodeResult(payload) {
             kanji: request.kanji ?? data.kanji,
             katakana: request.katakana ?? data.katakana,
             address: request.address ?? data.address,
-            message: payload.action === 'update' ? 'Updated' : (data.message ?? 'Registered'),
+            message: payload.action === 'update' ? t('updated') : (data.message ?? t('registered')),
         };
 
         showRegisterResult(registered, payload.action);
@@ -136,15 +357,15 @@ function showBarcodeResult(payload) {
 
     if (payload?.action === 'delete' && payload.ok && (data.deleted || data.message === 'Deleted')) {
         renderStableResult(`<div class="register-success">
-            <div class="success-ribbon">Deleted</div>
+            <div class="success-ribbon">${escapeHtml(t('deleted'))}</div>
             <div class="result-grid">
                 <div class="result-row is-visible">
-                    <div class="result-label">Barcode</div>
+                    <div class="result-label">${escapeHtml(t('barcode'))}</div>
                     <div class="result-value">${escapeHtml(request.barcode ?? data.barcode)}</div>
                 </div>
                 <div class="result-row is-visible">
-                    <div class="result-label">Status</div>
-                    <div class="result-value">${escapeHtml(data.message ?? 'Deleted')}</div>
+                    <div class="result-label">${escapeHtml(t('status'))}</div>
+                    <div class="result-value">${escapeHtml(data.message ?? t('deleted'))}</div>
                 </div>
             </div>
         </div>`);
@@ -163,13 +384,13 @@ function showBarcodeResult(payload) {
     }
 
     const rows = [
-        ['No', data.no],
-        ['Barcode', data.barcode],
-        ['Name', data.name],
-        ['Kanji', data.kanji],
-        ['Katakana', data.katakana],
-        ['Address', data.address],
-        ['Added DateTime', data.addedDateTime],
+        [t('no'), data.no],
+        [t('barcode'), data.barcode],
+        [t('name'), data.name],
+        [t('kanji'), data.kanji],
+        [t('katakana'), data.katakana],
+        [t('address'), data.address],
+        [t('added'), data.addedDateTime],
     ];
 
     const editAttrs = canEdit ? ` data-edit-record ${recordToDataset(data)}` : '';
@@ -186,23 +407,23 @@ function showBarcodeResult(payload) {
     scrollResultIntoView();
 }
 
-function showLoadingResult(message = 'Loading data') {
+function showLoadingResult(message = t('loadingData')) {
     barcodeResult.innerHTML = `<p class="empty-state is-loading">${escapeHtml(message)}</p>`;
     armResultReveal();
 }
 
 function showRegisterResult(data, action = 'register') {
     const rows = [
-        ['Status', data.message],
-        ['Barcode', data.barcode],
-        ['Name', data.name],
-        ['Kanji', data.kanji],
-        ['Katakana', data.katakana],
-        ['Address', data.address],
+        [t('status'), data.message],
+        [t('barcode'), data.barcode],
+        [t('name'), data.name],
+        [t('kanji'), data.kanji],
+        [t('katakana'), data.katakana],
+        [t('address'), data.address],
     ];
 
     renderStableResult(`<div class="register-success">
-        <div class="success-ribbon">${action === 'update' ? 'Updated' : 'Registered'}</div>
+        <div class="success-ribbon">${action === 'update' ? escapeHtml(t('updated')) : escapeHtml(t('registered'))}</div>
         <div class="result-grid">${rows.map(([label, value], index) => `
             <div class="result-row is-visible">
                 <div class="result-label">${escapeHtml(label)}</div>
@@ -216,39 +437,39 @@ function showRecordTable(records, limit = null, label = 'All records') {
     const visibleRecords = Number.isInteger(limit) ? records.slice(0, limit) : records;
 
     if (visibleRecords.length === 0) {
-        barcodeResult.innerHTML = '<p class="empty-state">No records</p>';
+        barcodeResult.innerHTML = `<p class="empty-state">${escapeHtml(t('noRecords'))}</p>`;
         armResultReveal();
         return;
     }
 
-    const tableLabel = Number.isInteger(limit) ? `${visibleRecords.length} recent records` : `${label}: ${visibleRecords.length}`;
+    const tableLabel = Number.isInteger(limit) ? `${visibleRecords.length} ${t('recentRecords')}` : `${label}: ${visibleRecords.length}`;
 
     barcodeResult.innerHTML = `<div class="result-mode-badge reveal-item">${escapeHtml(tableLabel)}</div>
     <div class="table-wrap">
         <table class="records-table">
             <thead>
                 <tr>
-                    <th>No</th>
-                    <th>Barcode</th>
-                    <th>Name</th>
-                    <th>Kanji</th>
-                    <th>Katakana</th>
-                    <th>Address</th>
-                    <th>Added</th>
-                    ${canEdit ? '<th>Action</th>' : ''}
+                    <th>${escapeHtml(t('no'))}</th>
+                    <th>${escapeHtml(t('barcode'))}</th>
+                    <th>${escapeHtml(t('name'))}</th>
+                    <th>${escapeHtml(t('kanji'))}</th>
+                    <th>${escapeHtml(t('katakana'))}</th>
+                    <th>${escapeHtml(t('address'))}</th>
+                    <th>${escapeHtml(t('added'))}</th>
+                    ${canEdit ? `<th>${escapeHtml(t('action'))}</th>` : ''}
                 </tr>
             </thead>
             <tbody>
                 ${visibleRecords.map((record, index) => `
                     <tr class="reveal-row${canEdit ? ' is-editable' : ''}" ${canEdit ? `data-edit-record ${recordToDataset(record)}` : ''} style="--reveal-delay: ${Math.min(index * 35, 420)}ms">
-                        <td data-label="No">${escapeHtml(record.no)}</td>
-                        <td data-label="Barcode">${escapeHtml(record.barcode)}</td>
-                        <td data-label="Name">${escapeHtml(record.name)}</td>
-                        <td data-label="Kanji">${escapeHtml(record.kanji)}</td>
-                        <td data-label="Katakana">${escapeHtml(record.katakana)}</td>
-                        <td data-label="Address">${escapeHtml(record.address)}</td>
-                        <td data-label="Added">${escapeHtml(record.addedDateTime)}</td>
-                        ${canEdit ? `<td data-label="Action"><button class="mini-delete" type="button" data-delete-barcode="${escapeHtml(record.barcode)}">Delete</button></td>` : ''}
+                        <td data-label="${escapeHtml(t('no'))}">${escapeHtml(record.no)}</td>
+                        <td data-label="${escapeHtml(t('barcode'))}">${escapeHtml(record.barcode)}</td>
+                        <td data-label="${escapeHtml(t('name'))}">${escapeHtml(record.name)}</td>
+                        <td data-label="${escapeHtml(t('kanji'))}">${escapeHtml(record.kanji)}</td>
+                        <td data-label="${escapeHtml(t('katakana'))}">${escapeHtml(record.katakana)}</td>
+                        <td data-label="${escapeHtml(t('address'))}">${escapeHtml(record.address)}</td>
+                        <td data-label="${escapeHtml(t('added'))}">${escapeHtml(record.addedDateTime)}</td>
+                        ${canEdit ? `<td data-label="${escapeHtml(t('action'))}"><button class="mini-delete" type="button" data-delete-barcode="${escapeHtml(record.barcode)}">${escapeHtml(t('delete'))}</button></td>` : ''}
                     </tr>
                 `).join('')}
             </tbody>
@@ -276,14 +497,14 @@ async function loadInitialRecords() {
         const records = body?.data?.records;
 
         if (response.ok && Array.isArray(records)) {
-            showRecordTable(records, 5, 'recent records');
+            showRecordTable(records, 5, t('recentRecords'));
             return;
         }
     } catch (error) {
         // Keep the first screen quiet if IRIS is not reachable yet.
     }
 
-    barcodeResult.innerHTML = '<p class="empty-state">No data</p>';
+    barcodeResult.innerHTML = `<p class="empty-state">${escapeHtml(t('noData'))}</p>`;
     armResultReveal();
 }
 
@@ -369,7 +590,7 @@ function setRegisterMode() {
     }
 
     saveRecordButton.dataset.action = 'register';
-    saveRecordButton.textContent = 'Save';
+    saveRecordButton.textContent = t('save');
     saveRecordButton.classList.add('success');
 
     if (deleteRecordButton) {
@@ -392,7 +613,7 @@ function setEditMode(record) {
 
     if (saveRecordButton) {
         saveRecordButton.dataset.action = 'update';
-        saveRecordButton.textContent = 'Update';
+        saveRecordButton.textContent = t('update');
         saveRecordButton.classList.add('success');
     }
 
@@ -400,7 +621,7 @@ function setEditMode(record) {
         deleteRecordButton.hidden = false;
     }
 
-    expandRegisterPanel('Edit');
+    expandRegisterPanel(t('edit'));
     pulseElement(registerPanel, 'is-success-pulse');
 }
 
@@ -411,23 +632,23 @@ function requestDelete(barcode) {
         return;
     }
 
-    if (!window.confirm(`Delete barcode ${clean}?`)) {
+    if (!window.confirm(t('deleteConfirm', { barcode: clean }))) {
         return;
     }
 
     barcodeInput.value = clean;
     deleteRecordButton.disabled = true;
-    setStatus('Deleting');
+    setStatus(t('deleting'));
 
     sendRequest('delete', deleteRecordButton).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
-        setStatus('Error', true);
+        setStatus(t('error'), true);
         deleteRecordButton.disabled = false;
         form?.classList.remove('is-searching');
     });
 }
 
-function expandRegisterPanel(status = 'Register') {
+function expandRegisterPanel(status = t('register')) {
     expandPanel(registerPanel);
     setStatus(status);
     window.setTimeout(() => {
@@ -447,7 +668,7 @@ function toggleRegisterPanel() {
     }
 
     collapseRegisterPanel();
-    setStatus('Ready');
+    setStatus(t('ready'));
     barcodeInput?.focus();
 }
 
@@ -513,7 +734,7 @@ async function sendRequest(action, trigger) {
     }
 
     const body = await response.json().catch(() => ({
-        message: 'The server returned a non-JSON response.',
+        message: t('nonJsonResponse'),
     }));
 
     showBarcodeResult({
@@ -523,7 +744,7 @@ async function sendRequest(action, trigger) {
         body,
     });
 
-    setStatus(response.ok ? 'Done' : 'Error', !response.ok);
+    setStatus(response.ok ? t('done') : t('error'), !response.ok);
     trigger.disabled = false;
     form?.classList.remove('is-searching');
 }
@@ -538,16 +759,16 @@ form?.addEventListener('submit', (event) => {
     }
 
     event.submitter.disabled = true;
-    setStatus('Sending');
+    setStatus(t('sending'));
     form?.classList.toggle('is-searching', action === 'search' || action === 'register' || action === 'update');
 
     if (action === 'search') {
-        showLoadingResult('Loading data');
+        showLoadingResult(t('loadingData'));
     }
 
     sendRequest(action, event.submitter).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
-        setStatus('Error', true);
+        setStatus(t('error'), true);
         event.submitter.disabled = false;
         form?.classList.remove('is-searching');
     });
@@ -555,11 +776,11 @@ form?.addEventListener('submit', (event) => {
 
 document.querySelector('[data-action="ping"]')?.addEventListener('click', (event) => {
     event.currentTarget.disabled = true;
-    setStatus('Sending');
+    setStatus(t('sending'));
 
     sendRequest('ping', event.currentTarget).catch((error) => {
         barcodeResult.innerHTML = `<div class="result-alert">${escapeHtml(error.message)}</div>`;
-        setStatus('Error', true);
+        setStatus(t('error'), true);
         event.currentTarget.disabled = false;
     });
 });
@@ -604,6 +825,10 @@ themeToggle?.addEventListener('click', () => {
     setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 });
 
+languageSelect?.addEventListener('change', (event) => {
+    setLanguage(event.currentTarget.value);
+});
+
 async function stopScanner() {
     if (scannerControls) {
         scannerControls.stop();
@@ -618,7 +843,7 @@ async function stopScanner() {
     cameraStart.disabled = false;
     cameraStop.disabled = true;
     scannerPanel?.classList.remove('is-scanning');
-    setScannerStatus('Stopped');
+    setScannerStatus(t('stopped'));
 }
 
 async function startScanner() {
@@ -629,9 +854,9 @@ async function startScanner() {
 
         secureUrl.protocol = 'https:';
         secureUrl.port = '9443';
-        cameraNote.textContent = 'Opening the secure camera page...';
-        showCameraHelp(`Chrome needs HTTPS for camera. If a warning appears, click Advanced, proceed to ${secureUrl.hostname}, then allow Camera.`);
-        setScannerStatus('HTTPS needed', 'error');
+        cameraNote.textContent = t('openingSecure');
+        showCameraHelp(t('secureCameraHelp'));
+        setScannerStatus(t('httpsNeeded'), 'error');
         window.setTimeout(() => {
             window.location.href = secureUrl.toString();
         }, 900);
@@ -639,17 +864,17 @@ async function startScanner() {
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-        cameraNote.textContent = 'Camera API is unavailable. Check Chrome site settings and camera permissions.';
-        showCameraHelp('Chrome Settings > Privacy and security > Site settings > Camera: allow this site and pick a camera device.');
-        setScannerStatus('No camera', 'error');
+        cameraNote.textContent = t('cameraUnavailable');
+        showCameraHelp(t('cameraPermissionHelp'));
+        setScannerStatus(t('noCamera'), 'error');
         return;
     }
 
     cameraStart.disabled = true;
     cameraStop.disabled = false;
     scannerPanel?.classList.add('is-scanning');
-    setScannerStatus('Scanning', 'live');
-    cameraNote.textContent = 'Point the camera at a barcode.';
+    setScannerStatus(t('scanning'), 'live');
+    cameraNote.textContent = t('pointCamera');
     cameraHelp.hidden = true;
 
     try {
@@ -661,8 +886,8 @@ async function startScanner() {
             }
 
             barcodeInput.value = barcode;
-            cameraNote.textContent = `Scanned ${barcode}`;
-            setScannerStatus('Found', 'live');
+            cameraNote.textContent = t('scanned', { barcode });
+            setScannerStatus(t('found'), 'live');
             pulseElement(barcodeInput, 'is-scan-pulse');
             pulseElement(scannerPanel, 'is-scan-pulse');
             vibrate(80);
@@ -671,8 +896,8 @@ async function startScanner() {
         });
     } catch (error) {
         cameraNote.textContent = error.message;
-        showCameraHelp('If Chrome did not ask for permission, open Site settings for this address and set Camera to Allow.');
-        setScannerStatus('Error', 'error');
+        showCameraHelp(t('cameraPermissionHelp'));
+        setScannerStatus(t('error'), 'error');
         scannerPanel?.classList.remove('is-scanning');
         cameraStart.disabled = false;
         cameraStop.disabled = true;
@@ -683,15 +908,12 @@ cameraStart?.addEventListener('click', startScanner);
 cameraStop?.addEventListener('click', stopScanner);
 
 clearButton?.addEventListener('click', () => {
-    form?.reset();
-    setRegisterMode();
-    collapseRegisterPanel();
-    collapsePanel(scannerPanel);
-    scannerPanel?.classList.remove('is-scanning');
-    barcodeResult.innerHTML = '<p class="empty-state">No data</p>';
-    setStatus('Ready');
+    if (barcodeInput) {
+        barcodeInput.value = '';
+    }
+
+    setStatus(t('ready'));
     barcodeInput?.focus();
-    armResultReveal();
 });
 
 loadInitialRecords();
