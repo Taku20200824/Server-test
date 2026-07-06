@@ -36,8 +36,8 @@
         <main class="app-shell">
             <header class="app-header">
                 <div>
-                    <p class="eyebrow"></p>
-                    <h1></h1>
+                    <p class="eyebrow">IRIS Console</p>
+                    <h1><span class="brand-mark" aria-hidden="true" style="width:42px;height:42px;margin:0;border-radius:14px;"></span><span class="gradient-text" data-i18n="appTitle">Name Manager</span></h1>
                 </div>
                 <div class="header-meta">
                     <button class="user-pill" type="button" data-account-toggle aria-expanded="{{ session('account_updated') || session('csv_import') || $errors->account->any() || $errors->csv->any() ? 'true' : 'false' }}">

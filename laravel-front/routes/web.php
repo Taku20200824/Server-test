@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\IrisTestController;
+use App\Http\Controllers\NotesController;
 use App\Http\Middleware\EnsureIrisAuthenticated;
 
 Route::get('/login', [LoginController::class, 'show'])->name('login');
@@ -23,4 +24,7 @@ Route::middleware([EnsureIrisAuthenticated::class])->group(function () {
     Route::get('/iris-test/barcodes.html', [IrisTestController::class, 'downloadBarcodes'])->name('iris.barcodes.download');
     Route::post('/iris-test/import.csv', [IrisTestController::class, 'uploadCsv'])->name('iris.csv.upload');
     Route::post('/account/settings', [LoginController::class, 'updateAccount'])->name('account.update');
+
+    Route::get('/notes', [NotesController::class, 'index'])->name('notes.index');
+    Route::put('/notes', [NotesController::class, 'sync'])->name('notes.sync');
 });

@@ -47,13 +47,13 @@
 
 :root[data-theme='dark'] {
     color-scheme: dark;
-    --bg: #111111;
-    --ink: #f7f7f5;
-    --muted: #b8b8b3;
-    --line: rgba(255, 255, 255, .12);
-    --glass: rgba(28, 28, 28, .58);
-    --glass-soft: rgba(255, 255, 255, .08);
-    --glass-strong: rgba(44, 44, 44, .84);
+    --bg: #0c0d15;
+    --ink: #f4f4fa;
+    --muted: #b4b5c4;
+    --line: rgba(160, 165, 255, .14);
+    --glass: rgba(24, 25, 38, .6);
+    --glass-soft: rgba(160, 165, 255, .08);
+    --glass-strong: rgba(36, 38, 56, .86);
     --shadow-sm: 0 10px 30px rgba(0, 0, 0, .28);
     --shadow-md: 0 24px 70px rgba(0, 0, 0, .36);
     --shadow-lg: 0 40px 110px rgba(0, 0, 0, .46);
@@ -68,9 +68,9 @@
     --accent-glow: rgba(139, 132, 255, .5);
     --accent-grad: linear-gradient(140deg, #9b94ff 0%, #8b84ff 52%, #6ab0ff 100%);
 
-    --aurora-1: rgba(123, 116, 255, .22);
-    --aurora-2: rgba(45, 212, 191, .12);
-    --aurora-3: rgba(196, 130, 255, .17);
+    --aurora-1: rgba(123, 116, 255, .28);
+    --aurora-2: rgba(45, 212, 191, .14);
+    --aurora-3: rgba(196, 130, 255, .22);
 
     --ok: #4ade80;
     --ok-soft: rgba(74, 222, 128, .16);
@@ -95,7 +95,6 @@ body {
         var(--bg);
     background-size: 28px 28px, 28px 28px, auto, auto, auto;
     font-family: var(--font-sans);
-    transition: background .42s ease, color .42s ease;
 }
 
 /* Drifting aurora layer — colored glow behind everything */
@@ -113,14 +112,12 @@ body::after {
     animation: aurora-drift 28s ease-in-out infinite alternate;
 }
 
-:root.is-theme-swapping body,
-:root.is-theme-swapping .result-panel,
-:root.is-theme-swapping .iris-form::before,
-:root.is-theme-swapping .register-fields,
-:root.is-theme-swapping .scanner-panel,
-:root.is-theme-swapping .button,
-:root.is-theme-swapping input {
-    transition-duration: .42s;
+/* Theme swap: View Transitions API のクロスフェード（合成レイヤーなので滑らか） */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: .38s;
+    animation-timing-function: cubic-bezier(.3, .7, .3, 1);
+    mix-blend-mode: normal;
 }
 
 :root[data-theme='dark'] body {
@@ -2116,6 +2113,637 @@ body::before {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0) scale(1);
+}
+
+/* ============================================================
+   Signature layer — brand mark, gradient type, shimmer, glow
+   ============================================================ */
+
+/* Rotating conic brand ring with IRIS glyph */
+.brand-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 18px;
+    border-radius: 20px;
+    background: var(--glass-strong);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    isolation: isolate;
+}
+
+.brand-mark::before {
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    border-radius: 22px;
+    background: conic-gradient(from var(--ring-angle, 0deg),
+        transparent 0%, var(--accent-hi) 12%, transparent 26%,
+        transparent 48%, #4a8de0 62%, transparent 78%);
+    content: '';
+    animation: ring-spin 5.5s linear infinite;
+    filter: blur(.5px);
+}
+
+.brand-mark::after {
+    position: absolute;
+    inset: 8px;
+    border-radius: 12px;
+    background: var(--accent-grad);
+    box-shadow: 0 6px 20px var(--accent-glow);
+    content: '';
+    mask: radial-gradient(circle at 32% 32%, transparent 5px, #000 5.5px);
+    -webkit-mask: radial-gradient(circle at 32% 32%, transparent 5px, #000 5.5px);
+}
+
+@property --ring-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes ring-spin {
+    to { --ring-angle: 360deg; }
+}
+
+@supports not (background: conic-gradient(from var(--ring-angle, 0deg), #000, #fff)) {
+    .brand-mark::before {
+        animation: none;
+    }
+}
+
+/* Gradient display type for hero headings */
+.gradient-text {
+    background: var(--accent-grad);
+    background-size: 220% 220%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gradient-sheen 7s ease-in-out infinite alternate;
+}
+
+@keyframes gradient-sheen {
+    0%   { background-position: 0% 40%; }
+    100% { background-position: 100% 60%; }
+}
+
+/* Shimmer sweep across primary buttons */
+.button.primary {
+    position: relative;
+    overflow: hidden;
+}
+
+.button.primary::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg,
+        transparent 32%, rgba(255, 255, 255, .34) 48%,
+        rgba(255, 255, 255, .12) 54%, transparent 68%);
+    content: '';
+    opacity: 0;
+    transform: translateX(-100%);
+    pointer-events: none;
+}
+
+.button.primary:hover::after {
+    opacity: 1;
+    transform: translateX(100%);
+    transition: transform .7s cubic-bezier(.3, .6, .3, 1), opacity .15s ease;
+}
+
+/* Login card — breathing ambient glow + cursor spotlight */
+.login-card {
+    --spot-x: 50%;
+    --spot-y: 0%;
+}
+
+.login-card::before {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(34rem 22rem at var(--spot-x) var(--spot-y),
+        var(--accent-soft), transparent 62%);
+    content: '';
+    opacity: .9;
+    pointer-events: none;
+    transition: opacity .3s ease;
+}
+
+.login-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.login-shell::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(46rem 30rem at 50% 108%, var(--accent-soft), transparent 70%);
+    content: '';
+    animation: glow-breathe 6s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes glow-breathe {
+    0%   { opacity: .45; }
+    100% { opacity: 1; }
+}
+
+/* App header brand lockup */
+.app-header .eyebrow {
+    letter-spacing: .34em;
+    text-transform: uppercase;
+}
+
+.app-header h1 {
+    display: inline-flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Login card — gradient border ring */
+.login-card {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .42)) padding-box,
+        linear-gradient(165deg, var(--accent-line), rgba(255, 255, 255, .18) 40%, rgba(74, 141, 224, .3)) border-box;
+}
+
+:root[data-theme='dark'] .login-card {
+    background:
+        linear-gradient(150deg, rgba(30, 32, 48, .88), rgba(22, 23, 36, .62)) padding-box,
+        linear-gradient(165deg, var(--accent-line), rgba(160, 165, 255, .1) 40%, rgba(106, 176, 255, .3)) border-box;
+}
+
+/* Dark mode: richer panel tint for glass surfaces */
+:root[data-theme='dark'] .language-list {
+    background: rgba(28, 30, 46, .92);
+}
+
+/* Premium film grain — static, near-invisible, adds texture depth */
+.app-shell::after,
+.login-shell::after {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+    content: '';
+    opacity: .028;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+
+:root[data-theme='dark'] .app-shell::after,
+:root[data-theme='dark'] .login-shell::after {
+    opacity: .05;
+}
+
+/* ============================================================
+   Command Palette (Ctrl+K)
+   ============================================================ */
+
+.cmdk-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: start center;
+    padding-top: 16vh;
+    background: rgba(10, 10, 18, .32);
+    backdrop-filter: blur(6px);
+    animation: cmdk-fade .16s ease both;
+}
+
+:root[data-theme='dark'] .cmdk-overlay {
+    background: rgba(0, 0, 0, .5);
+}
+
+.cmdk-panel {
+    overflow: hidden;
+    width: min(92vw, 560px);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--glass-strong);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-lg);
+    backdrop-filter: blur(32px) saturate(140%);
+    animation: cmdk-pop .22s cubic-bezier(.2, .9, .25, 1.15) both;
+}
+
+.cmdk-input {
+    width: 100%;
+    height: 56px;
+    padding: 0 20px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    box-shadow: none;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.cmdk-input:focus {
+    background: transparent;
+    box-shadow: none;
+    border-color: var(--accent-line);
+}
+
+.cmdk-list {
+    display: grid;
+    gap: 3px;
+    max-height: 46vh;
+    padding: 8px;
+    overflow-y: auto;
+}
+
+.cmdk-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 650;
+    text-align: left;
+}
+
+.cmdk-item.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.cmdk-icon {
+    width: 24px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.cmdk-label {
+    flex: 1;
+}
+
+.cmdk-kbd,
+.cmdk-foot kbd,
+.cmdk-hint kbd {
+    padding: 3px 7px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--glass-soft);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: .68rem;
+    font-weight: 750;
+}
+
+.cmdk-empty {
+    padding: 22px;
+    color: var(--muted);
+    text-align: center;
+    font-size: .88rem;
+}
+
+.cmdk-foot {
+    display: flex;
+    gap: 8px;
+    justify-content: end;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+}
+
+.cmdk-hint {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 90;
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--glass);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+    backdrop-filter: blur(22px) saturate(130%);
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.cmdk-hint:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--inner-light), var(--inner-line), var(--shadow-md), 0 0 0 4px var(--accent-soft);
+}
+
+@keyframes cmdk-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes cmdk-pop {
+    from { opacity: 0; transform: translateY(-14px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   3D tilt (login card) + micro polish
+   ============================================================ */
+
+.login-shell {
+    perspective: 1200px;
+}
+
+.login-card {
+    transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transform-style: preserve-3d;
+    transition: transform .16s ease-out;
+    will-change: transform;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 38%, transparent);
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--accent) 60%, transparent);
+    background-clip: padding-box;
+}
+
+/* Accent text selection */
+::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+/* Table rows — hover lift & accent edge */
+.records-table tbody tr {
+    transition: background .14s ease, box-shadow .14s ease, transform .14s ease;
+}
+
+.records-table tbody tr:hover {
+    background: var(--accent-soft);
+    box-shadow: inset 3px 0 0 var(--accent);
+    transform: translateX(2px);
+}
+
+/* ============================================================
+   Sticky Notes — 背景に貼る付箋
+   ============================================================ */
+
+.note-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.iris-note {
+    --paper: #fff6a3;
+    --paper-deep: #f5e878;
+    --paper-ink: #4a4420;
+    position: absolute;
+    width: 220px;
+    padding: 0 0 12px;
+    background: linear-gradient(160deg, var(--paper) 0%, var(--paper-deep) 100%);
+    border-radius: 4px 4px 14px 4px;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, .12),
+        0 12px 26px rgba(0, 0, 0, .18),
+        inset 0 1px 0 rgba(255, 255, 255, .5);
+    transform: rotate(var(--rot, 0deg));
+    transition: transform .22s cubic-bezier(.3, .8, .3, 1.2), box-shadow .22s ease;
+    pointer-events: auto;
+}
+
+/* マスキングテープ */
+.iris-note::before {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 84px;
+    height: 22px;
+    background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, .32));
+    border-left: 1px dashed rgba(255, 255, 255, .65);
+    border-right: 1px dashed rgba(255, 255, 255, .65);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .1);
+    content: '';
+    transform: translateX(-50%) rotate(-2.5deg);
+    backdrop-filter: blur(2px);
+    pointer-events: none;
+}
+
+/* 右下の折り目 */
+.iris-note::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 16px 16px;
+    border-color: transparent transparent rgba(0, 0, 0, .1) transparent;
+    border-radius: 0 0 12px 0;
+    content: '';
+    pointer-events: none;
+}
+
+.iris-note:hover {
+    transform: rotate(0deg) translateY(-3px) scale(1.02);
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, .14),
+        0 22px 44px rgba(0, 0, 0, .26),
+        inset 0 1px 0 rgba(255, 255, 255, .5);
+    z-index: 6;
+}
+
+.iris-note.is-dragging {
+    transform: rotate(1.2deg) scale(1.05);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, .32);
+    z-index: 7;
+    cursor: grabbing;
+}
+
+.iris-note.is-entering {
+    animation: note-slap .38s cubic-bezier(.2, 1.4, .3, 1) both;
+}
+
+.iris-note.is-leaving {
+    animation: note-crumple .26s ease-in both;
+}
+
+@keyframes note-slap {
+    0%   { opacity: 0; transform: rotate(var(--rot)) scale(1.4) translateY(-16px); }
+    70%  { opacity: 1; transform: rotate(var(--rot)) scale(.96); }
+    100% { opacity: 1; transform: rotate(var(--rot)) scale(1); }
+}
+
+@keyframes note-crumple {
+    to { opacity: 0; transform: rotate(calc(var(--rot) + 8deg)) scale(.55); }
+}
+
+.note-grip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 10px 4px 12px;
+    cursor: grab;
+    touch-action: none;
+}
+
+.note-grip:active {
+    cursor: grabbing;
+}
+
+.note-dots {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.note-dot {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border: 1px solid rgba(0, 0, 0, .18);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform .14s ease;
+}
+
+.note-dot:hover {
+    transform: scale(1.35);
+}
+
+.dot-lemon { background: #ffe95c; }
+.dot-mint  { background: #7fe8c0; }
+.dot-rose  { background: #ffb3c8; }
+.dot-iris  { background: #b6b0ff; }
+
+.note-close {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .08);
+    color: var(--paper-ink);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: background .14s ease, transform .14s ease;
+}
+
+.note-close:hover {
+    background: rgba(220, 38, 38, .85);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.note-text {
+    display: block;
+    width: 100%;
+    min-height: 64px;
+    padding: 4px 14px 6px;
+    border: 0;
+    background: transparent;
+    color: var(--paper-ink);
+    box-shadow: none;
+    resize: none;
+    overflow: hidden;
+    font-family: 'Segoe Print', 'Yu Gothic', 'Hiragino Maru Gothic ProN', cursive, var(--font-sans);
+    font-size: .92rem;
+    line-height: 1.55;
+}
+
+.note-text:focus {
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
+.note-text::placeholder {
+    color: rgba(0, 0, 0, .3);
+}
+
+/* カラーバリエーション */
+.note-lemon { --paper: #fff6a3; --paper-deep: #f5e878; --paper-ink: #4a4420; }
+.note-mint  { --paper: #c9f7e4; --paper-deep: #9dedcc; --paper-ink: #1d4a38; }
+.note-rose  { --paper: #ffd9e4; --paper-deep: #ffbccf; --paper-ink: #58202f; }
+.note-iris  { --paper: #dedbff; --paper-deep: #c5c0ff; --paper-ink: #2f2a5e; }
+
+:root[data-theme='dark'] .iris-note {
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, .4),
+        0 14px 30px rgba(0, 0, 0, .5),
+        inset 0 1px 0 rgba(255, 255, 255, .3);
+    filter: saturate(.92) brightness(.96);
+}
+
+/* 使い方チップ */
+.note-tip {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 4;
+    padding: 8px 14px;
+    border: 1px dashed var(--accent-line);
+    border-radius: 999px;
+    background: var(--glass);
+    color: var(--muted);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(18px);
+    font-size: .74rem;
+    font-weight: 700;
+    pointer-events: none;
+    animation: tip-float 3.4s ease-in-out infinite alternate;
+}
+
+.note-tip.is-hidden {
+    display: none;
+}
+
+@keyframes tip-float {
+    from { transform: translateY(0); opacity: .75; }
+    to   { transform: translateY(-5px); opacity: 1; }
+}
+
+@media (max-width: 980px) {
+    .note-tip {
+        display: none;
+    }
+}
+
+/* Respect reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+    .brand-mark::before,
+    .gradient-text,
+    .login-shell::before,
+    .login-card,
+    .note-tip,
+    body::after {
+        animation: none !important;
+        transform: none !important;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

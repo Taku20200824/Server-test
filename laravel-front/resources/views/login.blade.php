@@ -47,8 +47,9 @@
                 <button class="theme-float" type="button" data-theme-toggle data-i18n="darkMode">Dark mode</button>
             </div>
             <section class="login-card" aria-label="IRIS login">
+                <div class="brand-mark" aria-hidden="true"></div>
                 <p class="eyebrow">IRIS Console</p>
-                <h1 data-i18n="login">Login</h1>
+                <h1 class="gradient-text" data-i18n="login">Login</h1>
 
                 <form method="POST" action="{{ route('login.submit') }}" class="login-form">
                     @csrf
@@ -121,5 +122,26 @@
                 </section>
             </section>
         </main>
+        <script>
+            (() => {
+                const card = document.querySelector('.login-card');
+                if (!card || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+                card.addEventListener('pointermove', (e) => {
+                    const r = card.getBoundingClientRect();
+                    const px = (e.clientX - r.left) / r.width;
+                    const py = (e.clientY - r.top) / r.height;
+                    card.style.setProperty('--spot-x', (px * 100) + '%');
+                    card.style.setProperty('--spot-y', (py * 100) + '%');
+                    card.style.setProperty('--tilt-x', ((py - .5) * -4).toFixed(2) + 'deg');
+                    card.style.setProperty('--tilt-y', ((px - .5) * 5).toFixed(2) + 'deg');
+                });
+
+                card.addEventListener('pointerleave', () => {
+                    card.style.setProperty('--tilt-x', '0deg');
+                    card.style.setProperty('--tilt-y', '0deg');
+                });
+            })();
+        </script>
     </body>
 </html>

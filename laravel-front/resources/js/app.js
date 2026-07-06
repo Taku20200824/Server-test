@@ -58,6 +58,10 @@ const languageLabels = {
 
 const translations = {
     ja: {
+        appTitle: '名前マネージャー',
+        cmdPlaceholder: 'コマンドを検索…',
+        notePlaceholder: 'メモを書く…',
+        noteTip: '背景をダブルクリックでメモを貼る',
         darkMode: 'ダークモード',
         whiteMode: 'ライトモード',
         cameraScan: 'カメラスキャン',
@@ -134,6 +138,10 @@ const translations = {
         chooseCsv: 'CSVを選択',
     },
     en: {
+        appTitle: 'Name Manager',
+        cmdPlaceholder: 'Type a command…',
+        notePlaceholder: 'Write a note…',
+        noteTip: 'Double-click the background to add a note',
         darkMode: 'Dark mode',
         whiteMode: 'White mode',
         cameraScan: 'Camera scan',
@@ -210,6 +218,10 @@ const translations = {
         chooseCsv: 'Choose CSV',
     },
     mn: {
+        appTitle: 'Нэрийн менежер',
+        cmdPlaceholder: 'Команд хайх…',
+        notePlaceholder: 'Тэмдэглэл бичих…',
+        noteTip: 'Арын дэвсгэр дээр давхар товшиж тэмдэглэл нэмнэ',
         darkMode: 'Харанхуй',
         whiteMode: 'Цагаан',
         cameraScan: 'Камер уншуулах',
@@ -365,17 +377,25 @@ function refreshResultLanguage() {
 function setTheme(theme) {
     const nextTheme = theme === 'dark' ? 'dark' : 'light';
 
-    document.documentElement.classList.add('is-theme-swapping');
-    document.documentElement.dataset.theme = nextTheme;
-    localStorage.setItem('iris-theme', nextTheme);
+    const apply = () => {
+        document.documentElement.dataset.theme = nextTheme;
+        localStorage.setItem('iris-theme', nextTheme);
 
-    if (themeToggle) {
-        themeToggle.textContent = nextTheme === 'dark' ? t('whiteMode') : t('darkMode');
+        if (themeToggle) {
+            themeToggle.textContent = nextTheme === 'dark' ? t('whiteMode') : t('darkMode');
+        }
+    };
+
+    const alreadySet = document.documentElement.dataset.theme === nextTheme;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // View Transitions API: GPUベースのスナップショット・クロスフェード。
+    // 多層グラデーションやbackdrop-filterを個別transitionさせるより遥かに滑らか。
+    if (!alreadySet && !reducedMotion && document.startViewTransition) {
+        document.startViewTransition(apply);
+    } else {
+        apply();
     }
-
-    window.setTimeout(() => {
-        document.documentElement.classList.remove('is-theme-swapping');
-    }, 420);
 }
 
 setTheme(localStorage.getItem('iris-theme') || document.documentElement.dataset.theme || 'light');
@@ -1104,3 +1124,289 @@ clearButton?.addEventListener('click', () => {
 });
 
 loadInitialRecords();
+
+/* ============================================================
+   Command Palette — Ctrl+K / Cmd+K
+   ============================================================ */
+
+(() => {
+    const paletteActions = () => {
+        const actions = [];
+        const el = (selector) => document.querySelector(selector);
+
+        if (el('[data-iris-form] input[name="barcode"]')) {
+            actions.push({ icon: '🔍', label: t('search'), hint: 'Focus', run: () => el('[data-iris-form] input[name="barcode"]').focus() });
+            actions.push({ icon: '📋', label: t('allRecords'), hint: 'Enter', run: () => { const i = el('[data-iris-form] input[name="barcode"]'); i.value = ''; el('[data-action="search"]')?.click(); } });
+        }
+        if (el('[data-register-toggle]')) {
+            actions.push({ icon: '➕', label: t('register'), hint: '', run: () => el('[data-register-toggle]').click() });
+        }
+        if (el('[data-camera-toggle]')) {
+            actions.push({ icon: '📷', label: t('cameraScan'), hint: '', run: () => el('[data-camera-toggle]').click() });
+        }
+        if (el('a[href*="export.csv"]')) {
+            actions.push({ icon: '⬇️', label: t('downloadCsv'), hint: 'CSV', run: () => el('a[href*="export.csv"]').click() });
+        }
+
+        const isDark = document.documentElement.dataset.theme === 'dark';
+        actions.push({ icon: isDark ? '☀️' : '🌙', label: isDark ? t('whiteMode') : t('darkMode'), hint: 'Theme', run: () => setTheme(isDark ? 'light' : 'dark') });
+        actions.push({ icon: '🌐', label: '日本語', hint: 'Lang', run: () => setLanguage('ja') });
+        actions.push({ icon: '🌐', label: 'English', hint: 'Lang', run: () => setLanguage('en') });
+        actions.push({ icon: '🌐', label: 'Монгол', hint: 'Lang', run: () => setLanguage('mn') });
+
+        if (el('form[action*="logout"]')) {
+            actions.push({ icon: '🚪', label: t('logout'), hint: '', run: () => el('form[action*="logout"]').requestSubmit() });
+        }
+
+        return actions;
+    };
+
+    let overlay = null;
+    let activeIndex = 0;
+    let filtered = [];
+
+    const close = () => {
+        overlay?.remove();
+        overlay = null;
+    };
+
+    const render = (query) => {
+        const list = overlay.querySelector('.cmdk-list');
+        const q = query.trim().toLowerCase();
+        filtered = paletteActions().filter((a) => !q || a.label.toLowerCase().includes(q));
+        activeIndex = Math.min(activeIndex, Math.max(filtered.length - 1, 0));
+
+        list.innerHTML = filtered.length === 0
+            ? `<div class="cmdk-empty">${escapeHtml(t('noData'))}</div>`
+            : filtered.map((a, i) => `
+                <button type="button" class="cmdk-item${i === activeIndex ? ' is-active' : ''}" data-index="${i}">
+                    <span class="cmdk-icon">${a.icon}</span>
+                    <span class="cmdk-label">${escapeHtml(a.label)}</span>
+                    ${a.hint ? `<kbd class="cmdk-kbd">${escapeHtml(a.hint)}</kbd>` : ''}
+                </button>`).join('');
+
+        list.querySelectorAll('.cmdk-item').forEach((item) => {
+            item.addEventListener('click', () => {
+                const action = filtered[Number(item.dataset.index)];
+                close();
+                action?.run();
+            });
+            item.addEventListener('pointerenter', () => {
+                activeIndex = Number(item.dataset.index);
+                list.querySelectorAll('.cmdk-item').forEach((n) => n.classList.toggle('is-active', Number(n.dataset.index) === activeIndex));
+            });
+        });
+    };
+
+    const open = () => {
+        if (overlay) return;
+        activeIndex = 0;
+
+        overlay = document.createElement('div');
+        overlay.className = 'cmdk-overlay';
+        overlay.innerHTML = `
+            <div class="cmdk-panel" role="dialog" aria-modal="true">
+                <input class="cmdk-input" type="text" placeholder="${escapeHtml(t('cmdPlaceholder'))}" autocomplete="off" spellcheck="false">
+                <div class="cmdk-list"></div>
+                <div class="cmdk-foot"><kbd>↑↓</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd></div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const input = overlay.querySelector('.cmdk-input');
+        render('');
+        input.focus();
+
+        input.addEventListener('input', () => { activeIndex = 0; render(input.value); });
+        overlay.addEventListener('pointerdown', (e) => { if (e.target === overlay) close(); });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(activeIndex + 1, filtered.length - 1); render(input.value); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); render(input.value); }
+            else if (e.key === 'Enter') { e.preventDefault(); const a = filtered[activeIndex]; close(); a?.run(); }
+            else if (e.key === 'Escape') { close(); }
+        });
+    };
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            overlay ? close() : open();
+        }
+    });
+
+    // Floating hint chip (desktop only)
+    if (matchMedia('(pointer: fine)').matches) {
+        const hint = document.createElement('button');
+        hint.type = 'button';
+        hint.className = 'cmdk-hint';
+        hint.innerHTML = '<kbd>Ctrl</kbd><kbd>K</kbd>';
+        hint.setAttribute('aria-label', 'Command palette');
+        hint.addEventListener('click', open);
+        document.body.appendChild(hint);
+    }
+})();
+
+/* ============================================================
+   Sticky Notes — 背景ダブルクリックで付箋を貼る
+   ============================================================ */
+
+(async () => {
+    if (!document.querySelector('.app-shell')) return;
+
+    const STORE_KEY = 'iris-notes-cache';
+    const NOTES_API = '/notes';
+    const COLORS = ['lemon', 'mint', 'rose', 'iris'];
+
+    // ログインアカウント単位でサーバー保存。他のPCからログインしても同じメモが出る。
+    // サーバーに届かない時だけ localStorage キャッシュにフォールバック。
+    let notes = [];
+    try {
+        const res = await fetch(NOTES_API, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error('notes fetch failed');
+        notes = (await res.json())?.notes ?? [];
+    } catch {
+        try { notes = JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+        catch { notes = []; }
+    }
+
+    let syncTimer = null;
+    const syncToServer = (useKeepalive = false) => {
+        const body = JSON.stringify({ notes });
+        return fetch(NOTES_API, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                Accept: 'application/json',
+            },
+            body,
+            keepalive: useKeepalive,
+        }).catch(() => {});
+    };
+
+    const layer = document.createElement('div');
+    layer.className = 'note-layer';
+    document.body.appendChild(layer);
+
+    const tip = document.createElement('div');
+    tip.className = 'note-tip';
+    tip.textContent = t('noteTip');
+    document.body.appendChild(tip);
+    if (notes.length > 0) tip.classList.add('is-hidden');
+
+    const persist = () => {
+        localStorage.setItem(STORE_KEY, JSON.stringify(notes));
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => syncToServer(), 600);
+    };
+
+    // ページ離脱時は即時フラッシュ（keepaliveで送信を保証）
+    window.addEventListener('pagehide', () => {
+        if (syncTimer) {
+            clearTimeout(syncTimer);
+            syncToServer(true);
+        }
+    });
+
+    const removeNote = (id) => {
+        notes = notes.filter((n) => n.id !== id);
+        persist();
+        const el = layer.querySelector(`[data-note-id="${id}"]`);
+        if (el) {
+            el.classList.add('is-leaving');
+            el.addEventListener('animationend', () => el.remove(), { once: true });
+        }
+        if (notes.length === 0) tip.classList.remove('is-hidden');
+    };
+
+    const renderNote = (note, isNew = false) => {
+        const el = document.createElement('div');
+        el.className = `iris-note note-${note.color}${isNew ? ' is-entering' : ''}`;
+        el.dataset.noteId = note.id;
+        el.style.left = note.x + '%';
+        el.style.top = note.y + '%';
+        el.style.setProperty('--rot', note.rot + 'deg');
+
+        el.innerHTML = `
+            <div class="note-grip" title="drag">
+                <span class="note-dots">${COLORS.map((c) => `<button type="button" class="note-dot dot-${c}" data-color="${c}" aria-label="${c}"></button>`).join('')}</span>
+                <button type="button" class="note-close" aria-label="delete">×</button>
+            </div>
+            <textarea class="note-text" placeholder="${escapeHtml(t('notePlaceholder'))}" spellcheck="false">${escapeHtml(note.text)}</textarea>`;
+
+        const textarea = el.querySelector('.note-text');
+        const autoSize = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 320) + 'px';
+        };
+        textarea.addEventListener('input', () => {
+            note.text = textarea.value;
+            autoSize();
+            persist();
+        });
+
+        el.querySelector('.note-close').addEventListener('click', () => removeNote(note.id));
+
+        el.querySelectorAll('.note-dot').forEach((dot) => {
+            dot.addEventListener('click', () => {
+                COLORS.forEach((c) => el.classList.remove(`note-${c}`));
+                note.color = dot.dataset.color;
+                el.classList.add(`note-${note.color}`);
+                persist();
+            });
+        });
+
+        // Drag via grip
+        const grip = el.querySelector('.note-grip');
+        grip.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button')) return;
+            e.preventDefault();
+            grip.setPointerCapture(e.pointerId);
+            el.classList.add('is-dragging');
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const origX = note.x;
+            const origY = note.y;
+
+            const onMove = (ev) => {
+                note.x = Math.min(96, Math.max(0, origX + (ev.clientX - startX) / window.innerWidth * 100));
+                note.y = Math.min(96, Math.max(0, origY + (ev.clientY - startY) / window.innerHeight * 100));
+                el.style.left = note.x + '%';
+                el.style.top = note.y + '%';
+            };
+            const onUp = () => {
+                grip.removeEventListener('pointermove', onMove);
+                grip.removeEventListener('pointerup', onUp);
+                el.classList.remove('is-dragging');
+                persist();
+            };
+            grip.addEventListener('pointermove', onMove);
+            grip.addEventListener('pointerup', onUp);
+        });
+
+        layer.appendChild(el);
+        requestAnimationFrame(autoSize);
+        return el;
+    };
+
+    notes.forEach((n) => renderNote(n));
+
+    document.addEventListener('dblclick', (e) => {
+        const interactive = e.target.closest('.app-header, .workspace, .account-panel, .cmdk-overlay, .cmdk-hint, .iris-note, .note-tip, button, input, textarea, a, form, table');
+        if (interactive) return;
+
+        const note = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            x: Math.min(94, e.clientX / window.innerWidth * 100),
+            y: Math.min(92, e.clientY / window.innerHeight * 100),
+            text: '',
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            rot: (Math.random() * 5 - 2.5).toFixed(2),
+        };
+        notes.push(note);
+        persist();
+        tip.classList.add('is-hidden');
+        const el = renderNote(note, true);
+        el.querySelector('.note-text').focus();
+    });
+})();

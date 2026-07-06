@@ -14,7 +14,11 @@ class LoginController extends Controller
             return redirect()->route('iris.index');
         }
 
-        return view('login');
+        // 古いCSRFトークン入りのページをブラウザが再利用しないようにする（419対策）
+        return response()
+            ->view('login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 
     public function login(Request $request)
@@ -41,7 +45,18 @@ class LoginController extends Controller
         $request->session()->put('iris_login_name', $account['display_name'] ?? $username);
         $request->session()->put('iris_login_role', $account['role'] ?? $store->roleForUsername($username));
 
-        return redirect()->intended(route('iris.index'));
+        // url.intended に古いオリジン(例: https://192.168.1.91 ポート無し)が残っていると
+        // ログイン後に別ホストへ飛びセッションが切れるため、パス部分だけを現オリジンで使う。
+        $intended = (string) $request->session()->pull('url.intended', '');
+        $path = $intended !== '' ? (string) parse_url($intended, PHP_URL_PATH) : '';
+
+        if ($path !== '' && $path !== '/login') {
+            $query = (string) parse_url($intended, PHP_URL_QUERY);
+
+            return redirect()->to($path.($query !== '' ? '?'.$query : ''));
+        }
+
+        return redirect()->route('iris.index');
     }
 
     public function registerAccount(Request $request)
