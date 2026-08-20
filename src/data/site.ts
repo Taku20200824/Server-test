@@ -14,10 +14,10 @@ export const siteConfig = {
   name: "THE ISLE ASIA",
   description:
     "The largest English-speaking Asia community server for The Isle, built for Japan, Mongolia, Korea, Hong Kong, Taiwan, Singapore, and Southeast Asia.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://the-isle.vercel.app",
-  discordInvite: process.env.NEXT_PUBLIC_DISCORD_INVITE ?? "https://discord.gg/2Z5cTjz8NF",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://server-test-pi-eight.vercel.app",
+  discordInvite: process.env.NEXT_PUBLIC_DISCORD_URL ?? process.env.NEXT_PUBLIC_DISCORD_INVITE ?? "https://discord.gg/vmn3YjCZSE",
   discordGeneralChannel: "https://discord.com/channels/1536921178931859476/1536955772548681818",
-  serverIp: process.env.NEXT_PUBLIC_SERVER_IP ?? "209.102.250.73:9075",
+  serverIp: process.env.NEXT_PUBLIC_SERVER_IP ?? "209.102.250.73",
   regions: ["Japan", "Mongolia", "Korea", "Hong Kong", "Taiwan", "Singapore", "Southeast Asia"]
 };
 
