@@ -40,9 +40,9 @@ export default function Home() {
       <section className="gridSection" aria-label="Server overview">
         <div className="sectionLead">
           <p className="eyebrow">Community Control Center</p>
-          <h2>Built like THE-ISLE, connected to Firebase serverStatus/main.</h2>
+          <h2>Built like THE-ISLE, ready for its own Firebase project.</h2>
           <p>
-            The homepage now reads Firestore data from the Firebase document you opened, while still falling back to safe default values when Firebase variables are missing.
+            This homepage reads `serverStatus/main` only from the Firebase project configured in this repo's Vercel environment variables. Do not connect it to THE-ISLE's existing Firebase project.
           </p>
         </div>
         <div className="featureGrid">
@@ -82,7 +82,7 @@ export default function Home() {
 
       <footer>
         <span>{site.name}</span>
-        <span>Vercel + Next.js + Firebase Firestore</span>
+        <span>Vercel + Next.js + separate Firebase Firestore</span>
       </footer>
     </main>
   );
