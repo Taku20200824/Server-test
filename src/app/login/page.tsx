@@ -11,6 +11,7 @@ import styles from "./LoginPage.module.css";
 type Language = "ja" | "en" | "mn";
 type Mode = "login" | "create";
 type StatusKind = "info" | "error";
+type LabelSet = typeof labels.ja;
 
 const labels = {
   ja: {
@@ -78,7 +79,7 @@ const labels = {
   }
 };
 
-function getFirebaseMessage(error: unknown, t: typeof labels[Language]) {
+function getFirebaseMessage(error: unknown, t: LabelSet) {
   const message = error instanceof Error ? error.message : "Firebase error";
   if (message.includes("auth/configuration-not-found")) return t.authSetup;
   if (message.includes("auth/operation-not-allowed")) return t.authDenied;
