@@ -1,9 +1,0 @@
-.next
-node_modules
-.pnpm-store
-.env
-.env*.local
-dist
-coverage
-*.tsbuildinfo
-prisma/dev.db
