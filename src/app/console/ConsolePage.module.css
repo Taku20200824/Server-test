@@ -1,14 +1,29 @@
 .page {
-  background: #eef1f5;
-  color: #1f2937;
+  background:
+    linear-gradient(120deg, rgba(15, 28, 46, 0.94), rgba(25, 62, 84, 0.86), rgba(13, 25, 42, 0.96)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 70px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 70px);
+  color: #e9f2fb;
   min-height: 100vh;
   padding: 14px;
+  position: relative;
+}
+
+.page::before {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(82, 185, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(68, 211, 174, 0.12), transparent 24%),
+    linear-gradient(135deg, transparent 22%, rgba(255, 255, 255, 0.055) 50%, transparent 78%);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
 }
 
 .loading {
   align-items: center;
-  background: #eef1f5;
-  color: #1f2937;
+  background: #111827;
+  color: #e9f2fb;
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -17,36 +32,40 @@
 .shell {
   margin: 0 auto;
   max-width: 1220px;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
   align-items: center;
-  background: #233347;
-  border: 1px solid #1a2636;
-  border-radius: 6px 6px 0 0;
+  background: rgba(13, 25, 42, 0.66);
+  backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(210, 232, 255, 0.18);
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 20px 44px rgba(1, 8, 19, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   color: #ffffff;
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  min-height: 74px;
+  min-height: 76px;
   padding: 13px 16px;
 }
 
 .brand {
-  color: #9fc6ea;
+  color: #8bd3ff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   margin: 0 0 5px;
 }
 
 .header h1 {
-  font-size: 27px;
+  font-size: 28px;
   line-height: 1;
   margin: 0 0 6px;
 }
 
 .header p:last-child {
-  color: #d9e5f2;
+  color: #d8e7f6;
   font-size: 13px;
   margin: 0;
 }
@@ -65,10 +84,11 @@
 .noteArea button,
 .recordForm button {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #b8c0cc;
-  border-radius: 4px;
-  color: #1f2937;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(218, 238, 255, 0.22);
+  border-radius: 6px;
+  color: #eef7ff;
   cursor: pointer;
   display: inline-flex;
   gap: 7px;
@@ -82,27 +102,29 @@
 .actions button:hover,
 .noteArea button:hover,
 .recordForm button:hover {
-  background: #f0f6ff;
-  border-color: #4b82b8;
+  background: rgba(92, 178, 255, 0.2);
+  border-color: rgba(116, 207, 255, 0.56);
 }
 
 .statusline {
   align-items: center;
-  background: #dfe6ee;
-  border: 1px solid #c0cad6;
+  background: rgba(219, 234, 249, 0.18);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(210, 232, 255, 0.18);
   border-top: 0;
-  color: #263342;
+  color: #e2edf7;
   display: flex;
   font-size: 13px;
   justify-content: space-between;
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 12px;
 }
 
 .workspace {
   align-items: start;
-  background: #ffffff;
-  border: 1px solid #cfd6df;
+  background: rgba(241, 247, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(145%);
+  border: 1px solid rgba(210, 232, 255, 0.18);
   border-top: 0;
   display: grid;
   gap: 12px;
@@ -112,16 +134,18 @@
 
 .sidepanel,
 .mainpanel {
-  background: #ffffff;
-  border: 1px solid #ccd3dd;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(232, 242, 255, 0.54);
+  border-radius: 8px;
+  box-shadow: 0 14px 28px rgba(1, 8, 19, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  color: #1f2937;
   padding: 12px;
 }
 
 .accountBox {
-  background: linear-gradient(180deg, #f8fbff, #f2f6fb);
-  border: 1px solid #d7dee8;
-  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(232, 244, 255, 0.58));
+  border: 1px solid rgba(180, 210, 239, 0.5);
+  border-radius: 8px;
   display: grid;
   gap: 8px;
   padding: 12px;
@@ -134,9 +158,9 @@
 }
 
 .accountId {
-  color: #1d5f91;
-  font-size: 28px;
-  font-weight: 700;
+  color: #116093;
+  font-size: 29px;
+  font-weight: 800;
   line-height: 1;
   margin: 0;
 }
@@ -148,7 +172,7 @@
 }
 
 .noteArea {
-  border-top: 1px solid #d7dee8;
+  border-top: 1px solid rgba(183, 205, 228, 0.58);
   display: grid;
   gap: 11px;
   margin-top: 14px;
@@ -158,9 +182,9 @@
 .noteArea textarea,
 .recordForm input,
 .searchbar input {
-  background: #ffffff;
-  border: 1px solid #bfc8d4;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(178, 199, 222, 0.64);
+  border-radius: 6px;
   color: #1f2937;
   min-height: 38px;
   outline: none;
@@ -176,8 +200,8 @@
 .recordForm input:focus,
 .searchbar input:focus,
 .noteArea textarea:focus {
-  border-color: #2b77b7;
-  box-shadow: 0 0 0 2px rgba(43, 119, 183, 0.18);
+  border-color: #2b92d0;
+  box-shadow: 0 0 0 3px rgba(43, 146, 208, 0.2);
 }
 
 .recordForm {
@@ -188,23 +212,23 @@
 }
 
 .recordForm label {
-  color: #3f4b5a;
+  color: #314155;
   display: grid;
   font-size: 13px;
   gap: 5px;
 }
 
 .primary {
-  background: #1d5f91 !important;
-  border-color: #1d5f91 !important;
+  background: linear-gradient(135deg, #2e8fd6, #3bc7a8) !important;
+  border-color: rgba(76, 185, 231, 0.62) !important;
   color: #ffffff !important;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .searchbar {
-  background: #f7f9fc;
-  border: 1px solid #d2dae5;
-  border-radius: 4px;
+  background: rgba(247, 251, 255, 0.66);
+  border: 1px solid rgba(190, 211, 232, 0.54);
+  border-radius: 8px;
   padding: 6px;
 }
 
@@ -228,15 +252,15 @@
 
 .tableWrap th,
 .tableWrap td {
-  border-bottom: 1px solid #e1e6ee;
+  border-bottom: 1px solid rgba(207, 222, 238, 0.8);
   padding: 9px 8px;
   text-align: left;
   vertical-align: middle;
 }
 
 .tableWrap th {
-  background: #eef3f8;
-  color: #425064;
+  background: rgba(231, 241, 251, 0.86);
+  color: #314155;
   font-size: 12px;
   position: sticky;
   top: 0;
@@ -259,15 +283,13 @@
 }
 
 .dark {
-  background: #111827;
+  background:
+    linear-gradient(120deg, rgba(7, 14, 25, 0.96), rgba(13, 35, 52, 0.92), rgba(7, 14, 25, 0.96)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 70px);
   color: #e5e7eb;
 }
 
-.dark .header {
-  background: #0f172a;
-  border-color: #0b1120;
-}
-
+.dark .header,
 .dark .workspace,
 .dark .sidepanel,
 .dark .mainpanel,
@@ -281,14 +303,14 @@
 .dark .actions button,
 .dark .noteArea button,
 .dark .recordForm button {
-  background: #1f2937;
-  border-color: #3b4658;
+  background-color: rgba(18, 28, 45, 0.66);
+  border-color: rgba(142, 184, 224, 0.24);
   color: #e5e7eb;
 }
 
 .dark .statusline {
-  background: #182235;
-  border-color: #344056;
+  background: rgba(24, 34, 53, 0.72);
+  border-color: rgba(142, 184, 224, 0.2);
   color: #dbe4f0;
 }
 
@@ -299,7 +321,7 @@
 }
 
 .dark .tableWrap th {
-  background: #273244;
+  background: rgba(39, 50, 68, 0.88);
 }
 
 .dark .tableWrap td {
