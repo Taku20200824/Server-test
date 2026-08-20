@@ -35,6 +35,12 @@ type IrisRecord = {
   authUid?: string;
 };
 
+type Announcement = {
+  title: string;
+  body: string;
+  date: string;
+};
+
 const labels = {
   ja: {
     account: "アカウント",
@@ -102,6 +108,7 @@ export default function ConsolePage() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
   const [records, setRecords] = useState<IrisRecord[]>([]);
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [search, setSearch] = useState("");
   const [recordForm, setRecordForm] = useState(emptyRecord);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,6 +140,22 @@ export default function ConsolePage() {
     const recordsQuery = query(collection(db, "irisRecords"), orderBy("updatedAt", "desc"));
     return onSnapshot(recordsQuery, (snapshot) => {
       setRecords(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as IrisRecord));
+    }, (error) => setStatus(error.message));
+  }, [firebaseUser]);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    return onSnapshot(doc(db, "announcements", "server-ready"), (snapshot) => {
+      const data = snapshot.data();
+      if (!data) {
+        setAnnouncement(null);
+        return;
+      }
+      setAnnouncement({
+        title: typeof data.title === "string" ? data.title : "Server ready",
+        body: typeof data.body === "string" ? data.body : "",
+        date: typeof data.date === "string" ? data.date : ""
+      });
     }, (error) => setStatus(error.message));
   }, [firebaseUser]);
 
@@ -258,6 +281,16 @@ export default function ConsolePage() {
           <span>{currentAccount.id} / {currentAccount.displayName}</span>
           <span>{status}</span>
         </section>
+
+        {announcement && (
+          <section className={styles.announcement}>
+            <div>
+              <p className={styles.announcementDate}>{announcement.date}</p>
+              <h2>{announcement.title}</h2>
+            </div>
+            <p>{announcement.body}</p>
+          </section>
+        )}
 
         <div className={styles.workspace}>
           <aside className={styles.sidepanel}>
