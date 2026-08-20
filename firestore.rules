@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /irisAccounts/{accountId} {
+      allow read: if true;
+      allow create, update: if accountId.matches('^[0-9]{4}$')
+        && request.resource.data.keys().hasOnly(['displayName', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80;
+      allow delete: if false;
+    }
+
+    match /irisRecords/{recordId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['barcode', 'name', 'memo', 'ownerId', 'updatedAt'])
+        && request.resource.data.barcode is string
+        && request.resource.data.barcode.size() > 0
+        && request.resource.data.barcode.size() <= 80
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 160
+        && request.resource.data.memo is string
+        && request.resource.data.memo.size() <= 1000
+        && request.resource.data.ownerId.matches('^[0-9]{4}$');
+      allow delete: if true;
+    }
+
+    match /irisNotes/{accountId} {
+      allow read: if true;
+      allow create, update: if accountId.matches('^[0-9]{4}$')
+        && request.resource.data.keys().hasOnly(['body', 'displayName', 'updatedAt'])
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 3000;
+      allow delete: if false;
+    }
+  }
+}
