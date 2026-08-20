@@ -1,0 +1,3 @@
+2026/05/21 13:16:41 [alert] 4896#4148: the event "ngx_master_4896" was not signaled for 5s
+2026/05/21 18:01:01 [alert] 19868#20896: worker process 26048 exited with code C0000142
+2026/05/21 18:01:01 [alert] 19868#20896: could not respawn worker

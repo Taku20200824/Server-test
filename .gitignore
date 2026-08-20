@@ -1,0 +1,31 @@
+.vscode/
+
+# Local Laravel/runtime files
+laravel-front/.env
+laravel-front/.env.*
+!laravel-front/.env.example
+laravel-front/node_modules/
+laravel-front/vendor/
+laravel-front/public/build/
+laravel-front/public/hot
+laravel-front/public/storage/
+laravel-front/storage/*.key
+laravel-front/storage/framework/cache/
+laravel-front/storage/framework/sessions/
+laravel-front/storage/framework/testing/
+laravel-front/storage/framework/views/
+laravel-front/storage/logs/
+laravel-front/.phpunit.result.cache
+
+# nginx runtime/logs
+nginx-runtime/
+*.log
+nginx.pid
+
+# Local HTTPS private material
+iris-local.key
+iris-local.crt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
