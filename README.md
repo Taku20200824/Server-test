@@ -1,9 +1,12 @@
 # IRIS Console (Server-test)
 
 Server-test は、名前管理・バーコード検索のコンソールです。
-現在のリポジトリには Vercel で動く Next.js 版を追加しています。登録、ユーザーID、バーコードデータ、付箋メモは Firebase Firestore に保存します。
+現在のリポジトリには Vercel で動く Next.js 版を追加しています。登録、ユーザーID、バーコードデータ、付箋メモは Firebase Authentication + Firestore に保存します。
 
-- ログイン / アカウント登録（4桁ID）
+- `/login` 独立ログイン / アカウント登録画面（4桁ID）
+- `/console` IRIS Console ホーム画面
+- 未ログイン時は `/login` へ移動
+- ログアウト対応
 - バーコード検索・登録・更新・削除
 - CSV ダウンロード
 - 付箋メモ（アカウント単位でFirebase保存）
@@ -21,15 +24,22 @@ npm run dev
 
 Firebase project は `server-test-ef8cb` を使います。Web設定は `.env.example` に入っています。Vercel側で環境変数を入れなくても動くように、同じFirebase Web configをコード側にもfallbackとして設定済みです。
 
+### Firebase Consoleで必要な作業
+
+1. Authentication を開く
+2. Sign-in method で Anonymous を有効化
+3. Firestore Database の Rules に `firestore.rules` の内容を貼り付ける
+4. Publish を押す
+
 Firestore collections:
 
 | Collection | 内容 |
 |------------|------|
-| `irisAccounts` | 4桁IDと表示名 |
-| `irisRecords` | バーコード、名前、メモ、登録者ID |
-| `irisNotes` | アカウント別の付箋メモ |
+| `irisAccounts` | 4桁ID、表示名、Firebase Auth UID |
+| `irisRecords` | バーコード、名前、メモ、登録者ID、Firebase Auth UID |
+| `irisNotes` | アカウント別の付箋メモ、Firebase Auth UID |
 
-Firestore Rules は `firestore.rules` に入れています。Firebase Console の Firestore Rules に貼り付けて公開してください。
+Firestore Rules は認証済みユーザーだけが読み書きできます。公開の `allow read/write: if true` にはしていません。
 
 ## 旧ローカル IRIS / Laravel 版メモ
 
@@ -78,10 +88,3 @@ php artisan serve --host=127.0.0.1 --port=8000
 ```
 
 LAN公開は `C:\Front\IRIS-START.bat`、停止は `IRIS-STOP.bat` を使います。
-
-### データの保存場所（旧版）
-
-| ファイル | 内容 |
-|---------|------|
-| `laravel-front/storage/app/private/iris_accounts.json` | ログインアカウント |
-| `laravel-front/storage/app/private/iris_notes.json` | 付箋メモ（ユーザー別） |
