@@ -65,7 +65,8 @@
   margin: 0;
 }
 
-.tools {
+.tools,
+.modeTabs {
   display: flex;
   gap: 8px;
 }
@@ -82,11 +83,31 @@
   padding: 0 12px;
 }
 
-.tools button {
+.tools button,
+.modeTab {
   background: rgba(255, 255, 255, 0.13);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(210, 232, 255, 0.24);
   color: #eaf3ff;
+}
+
+.modeTabs {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(221, 238, 255, 0.16);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.modeTab,
+.activeTab {
+  flex: 1 1 0;
+}
+
+.activeTab {
+  background: linear-gradient(135deg, rgba(46, 143, 214, 0.92), rgba(59, 199, 168, 0.88));
+  border: 1px solid rgba(163, 231, 255, 0.5);
+  color: #ffffff;
+  font-weight: 800;
 }
 
 .card {
@@ -101,7 +122,7 @@
   justify-self: center;
   margin-top: 78px;
   padding: 24px;
-  width: min(430px, 100%);
+  width: min(460px, 100%);
 }
 
 .cardHead {
@@ -181,6 +202,8 @@
 .dark .header,
 .dark .card,
 .dark .tools button,
+.dark .modeTabs,
+.dark .modeTab,
 .dark .card input,
 .dark .status {
   background-color: rgba(18, 28, 45, 0.62);
@@ -209,8 +232,14 @@
     gap: 12px;
   }
 
-  .tools {
+  .tools,
+  .modeTabs {
     flex-wrap: wrap;
+  }
+
+  .modeTab,
+  .activeTab {
+    flex-basis: 100%;
   }
 
   .card {
