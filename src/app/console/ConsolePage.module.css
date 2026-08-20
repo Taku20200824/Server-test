@@ -1,0 +1,333 @@
+.page {
+  background: #eef1f5;
+  color: #1f2937;
+  min-height: 100vh;
+  padding: 14px;
+}
+
+.loading {
+  align-items: center;
+  background: #eef1f5;
+  color: #1f2937;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.shell {
+  margin: 0 auto;
+  max-width: 1220px;
+}
+
+.header {
+  align-items: center;
+  background: #233347;
+  border: 1px solid #1a2636;
+  border-radius: 6px 6px 0 0;
+  color: #ffffff;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 74px;
+  padding: 13px 16px;
+}
+
+.brand {
+  color: #9fc6ea;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 0 5px;
+}
+
+.header h1 {
+  font-size: 27px;
+  line-height: 1;
+  margin: 0 0 6px;
+}
+
+.header p:last-child {
+  color: #d9e5f2;
+  font-size: 13px;
+  margin: 0;
+}
+
+.tools,
+.searchbar,
+.actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.tools button,
+.searchbar button,
+.actions button,
+.noteArea button,
+.recordForm button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #b8c0cc;
+  border-radius: 4px;
+  color: #1f2937;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 7px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 11px;
+}
+
+.tools button:hover,
+.searchbar button:hover,
+.actions button:hover,
+.noteArea button:hover,
+.recordForm button:hover {
+  background: #f0f6ff;
+  border-color: #4b82b8;
+}
+
+.statusline {
+  align-items: center;
+  background: #dfe6ee;
+  border: 1px solid #c0cad6;
+  border-top: 0;
+  color: #263342;
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.workspace {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #cfd6df;
+  border-top: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 280px minmax(0, 1fr);
+  padding: 12px;
+}
+
+.sidepanel,
+.mainpanel {
+  background: #ffffff;
+  border: 1px solid #ccd3dd;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.accountBox {
+  background: linear-gradient(180deg, #f8fbff, #f2f6fb);
+  border: 1px solid #d7dee8;
+  border-radius: 4px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.accountBox h2,
+.noteArea h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.accountId {
+  color: #1d5f91;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0;
+}
+
+.accountName {
+  color: #52606f;
+  font-size: 13px;
+  margin: 0;
+}
+
+.noteArea {
+  border-top: 1px solid #d7dee8;
+  display: grid;
+  gap: 11px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.noteArea textarea,
+.recordForm input,
+.searchbar input {
+  background: #ffffff;
+  border: 1px solid #bfc8d4;
+  border-radius: 4px;
+  color: #1f2937;
+  min-height: 38px;
+  outline: none;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.noteArea textarea {
+  min-height: 158px;
+  resize: vertical;
+}
+
+.recordForm input:focus,
+.searchbar input:focus,
+.noteArea textarea:focus {
+  border-color: #2b77b7;
+  box-shadow: 0 0 0 2px rgba(43, 119, 183, 0.18);
+}
+
+.recordForm {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(180px, 1.2fr) auto;
+  margin-bottom: 12px;
+}
+
+.recordForm label {
+  color: #3f4b5a;
+  display: grid;
+  font-size: 13px;
+  gap: 5px;
+}
+
+.primary {
+  background: #1d5f91 !important;
+  border-color: #1d5f91 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.searchbar {
+  background: #f7f9fc;
+  border: 1px solid #d2dae5;
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.searchbar input {
+  border: 0;
+  box-shadow: none;
+  min-height: 34px;
+}
+
+.tableWrap {
+  margin-top: 12px;
+  max-height: 560px;
+  overflow: auto;
+}
+
+.tableWrap table {
+  border-collapse: collapse;
+  min-width: 760px;
+  width: 100%;
+}
+
+.tableWrap th,
+.tableWrap td {
+  border-bottom: 1px solid #e1e6ee;
+  padding: 9px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tableWrap th {
+  background: #eef3f8;
+  color: #425064;
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+}
+
+.tableWrap td {
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+.actions button {
+  aspect-ratio: 1;
+  min-height: 32px;
+  padding: 0;
+  width: 32px;
+}
+
+.dark {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.dark .header {
+  background: #0f172a;
+  border-color: #0b1120;
+}
+
+.dark .workspace,
+.dark .sidepanel,
+.dark .mainpanel,
+.dark .accountBox,
+.dark .noteArea textarea,
+.dark .recordForm input,
+.dark .searchbar,
+.dark .searchbar input,
+.dark .tools button,
+.dark .searchbar button,
+.dark .actions button,
+.dark .noteArea button,
+.dark .recordForm button {
+  background: #1f2937;
+  border-color: #3b4658;
+  color: #e5e7eb;
+}
+
+.dark .statusline {
+  background: #182235;
+  border-color: #344056;
+  color: #dbe4f0;
+}
+
+.dark .accountName,
+.dark .recordForm label,
+.dark .tableWrap th {
+  color: #b8c2d2;
+}
+
+.dark .tableWrap th {
+  background: #273244;
+}
+
+.dark .tableWrap td {
+  color: #e5e7eb;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 10px;
+  }
+
+  .header,
+  .statusline {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tools,
+  .searchbar {
+    flex-wrap: wrap;
+  }
+
+  .workspace,
+  .recordForm {
+    grid-template-columns: 1fr;
+  }
+
+  .searchbar input {
+    flex: 1 1 180px;
+  }
+}
