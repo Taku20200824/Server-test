@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
-import { BadgeCheck, Languages, LogIn, Moon, ShieldCheck, UserPlus } from "lucide-react";
+import { BadgeCheck, Languages, LogIn, Moon, ShieldCheck, Sun, UserPlus } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import styles from "./LoginPage.module.css";
 
@@ -21,7 +21,7 @@ const labels = {
     title: "IRIS Console",
     subtitle: "Server-test 管理コンソール",
     eyebrow: "SECURE OPERATIONS",
-    heroTitle: "Work data, barcode records, and memos in one clean console.",
+    heroTitle: "作業データ・バーコード・メモを、ひとつのコンソールに。",
     heroText: "Firebaseでユーザーデータを保存し、Vercel上で軽く動くIRIS Consoleです。",
     loginHint: "登録済みの4桁IDでログインします。",
     createHint: "新しい4桁IDと名前でアカウントを作成します。",
@@ -42,7 +42,7 @@ const labels = {
     title: "IRIS Console",
     subtitle: "Server-test management console",
     eyebrow: "SECURE OPERATIONS",
-    heroTitle: "Work data, barcode records, and memos in one clean console.",
+    heroTitle: "Work data, barcodes, and memos in one console.",
     heroText: "IRIS Console runs on Vercel and keeps user data in Firebase.",
     loginHint: "Login with an existing 4-digit ID.",
     createHint: "Create an account with a new 4-digit ID and name.",
@@ -63,7 +63,7 @@ const labels = {
     title: "IRIS Console",
     subtitle: "Server-test удирдлагын консол",
     eyebrow: "SECURE OPERATIONS",
-    heroTitle: "Ажлын data, баркод, тэмдэглэл бүгд нэг цэвэр console дотор.",
+    heroTitle: "Ажлын data, баркод, тэмдэглэл бүгд нэг console дотор.",
     heroText: "Vercel дээр хурдан ажиллаж, хэрэглэгчийн data-г Firebase-д хадгална.",
     loginHint: "Бүртгэлтэй 4 оронтой ID-гаар нэвтэрнэ.",
     createHint: "Шинэ 4 оронтой ID болон нэрээр аккаунт үүсгэнэ.",
@@ -186,26 +186,26 @@ export default function LoginPage() {
             <h1>{t.title}</h1>
           </div>
           <div className={styles.tools}>
-            <button type="button" onClick={nextLanguage} title="language"><Languages size={17} />{language.toUpperCase()}</button>
-            <button type="button" onClick={() => setDark((value) => !value)} title="theme"><Moon size={17} /></button>
+            <button type="button" onClick={nextLanguage} title="language"><Languages size={21} />{language.toUpperCase()}</button>
+            <button type="button" onClick={() => setDark((value) => !value)} title="theme">{dark ? <Sun size={21} /> : <Moon size={21} />}</button>
           </div>
         </header>
 
         <div className={styles.stage}>
           <section className={styles.heroPanel}>
-            <p className={styles.eyebrow}>{t.eyebrow}</p>
+            <p className={styles.eyebrow}><span />{t.eyebrow}</p>
             <h2>{t.heroTitle}</h2>
             <p>{t.heroText}</p>
             <div className={styles.metrics}>
-              <span><BadgeCheck size={17} />Firebase</span>
-              <span><ShieldCheck size={17} />Vercel</span>
+              <span><BadgeCheck size={20} />Firebase</span>
+              <span><ShieldCheck size={20} />Vercel</span>
               <span>4ID</span>
             </div>
           </section>
 
           <form className={styles.card} onSubmit={handleSubmit}>
             <div className={styles.cardHead}>
-              <div className={styles.iconBox}>{mode === "login" ? <LogIn size={22} /> : <UserPlus size={22} />}</div>
+              <div className={styles.iconBox}>{mode === "login" ? <LogIn size={28} /> : <UserPlus size={28} />}</div>
               <div>
                 <p>{t.subtitle}</p>
                 <h2>{mode === "login" ? t.login : t.create}</h2>
@@ -213,8 +213,8 @@ export default function LoginPage() {
             </div>
 
             <div className={styles.modeTabs}>
-              <button className={mode === "login" ? styles.activeTab : styles.modeTab} type="button" onClick={() => switchMode("login")}><LogIn size={16} />{t.login}</button>
-              <button className={mode === "create" ? styles.activeTab : styles.modeTab} type="button" onClick={() => switchMode("create")}><UserPlus size={16} />{t.create}</button>
+              <button className={mode === "login" ? styles.activeTab : styles.modeTab} type="button" onClick={() => switchMode("login")}><LogIn size={17} />{t.login}</button>
+              <button className={mode === "create" ? styles.activeTab : styles.modeTab} type="button" onClick={() => switchMode("create")}><UserPlus size={17} />{t.create}</button>
             </div>
 
             <label>
@@ -230,13 +230,14 @@ export default function LoginPage() {
             )}
 
             <button className={styles.primary} disabled={busy} type="submit">
-              {mode === "login" ? <LogIn size={18} /> : <UserPlus size={18} />}
+              {mode === "login" ? <LogIn size={22} /> : <UserPlus size={22} />}
               {mode === "login" ? t.login : t.create}
             </button>
             <p className={styles.hint}>{mode === "login" ? t.loginHint : t.createHint}</p>
-            <p className={statusKind === "error" ? styles.errorStatus : styles.status}>{status}</p>
+            <p className={statusKind === "error" ? styles.errorStatus : styles.status}><span />{status}</p>
           </form>
         </div>
+        <footer className={styles.footer}>© 2026 Server-test · IRIS Console</footer>
       </section>
     </main>
   );
