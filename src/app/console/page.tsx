@@ -15,7 +15,7 @@ import {
   updateDoc
 } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously, signOut, User } from "firebase/auth";
-import { Download, Languages, LogOut, Moon, Plus, Save, Search, ScanLine, Trash2 } from "lucide-react";
+import { Download, Languages, LogOut, Moon, Plus, Save, Search, ScanLine, Sun, Trash2 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import styles from "./ConsolePage.module.css";
 
@@ -47,6 +47,7 @@ const labels = {
     barcode: "バーコード",
     command: "登録 / 更新",
     download: "CSV",
+    empty: "データがありません",
     logout: "ログアウト",
     memo: "付箋メモ",
     name: "名前",
@@ -60,6 +61,7 @@ const labels = {
     barcode: "Barcode",
     command: "Save",
     download: "CSV",
+    empty: "No data",
     logout: "Logout",
     memo: "Sticky note",
     name: "Name",
@@ -73,6 +75,7 @@ const labels = {
     barcode: "Баркод",
     command: "Хадгалах",
     download: "CSV",
+    empty: "Өгөгдөл алга",
     logout: "Гарах",
     memo: "Тэмдэглэл",
     name: "Нэр",
@@ -115,7 +118,7 @@ function getFirebaseAuthStatus(error: unknown) {
 export default function ConsolePage() {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("ja");
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
   const [records, setRecords] = useState<IrisRecord[]>([]);
@@ -286,9 +289,9 @@ export default function ConsolePage() {
             <p>{t.subtitle}</p>
           </div>
           <div className={styles.tools}>
-            <button type="button" onClick={() => setLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")}><Languages size={17} />{language.toUpperCase()}</button>
-            <button type="button" onClick={() => setDark((value) => !value)}><Moon size={17} /></button>
-            <button type="button" onClick={handleLogout}><LogOut size={17} />{t.logout}</button>
+            <button type="button" onClick={() => setLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")} title="language"><Languages size={22} />{language.toUpperCase()}</button>
+            <button type="button" onClick={() => setDark((value) => !value)} title="theme">{dark ? <Sun size={22} /> : <Moon size={22} />}</button>
+            <button className={styles.logoutButton} type="button" onClick={handleLogout}><LogOut size={22} />{t.logout}</button>
           </div>
         </header>
 
@@ -318,7 +321,7 @@ export default function ConsolePage() {
             <div className={styles.noteArea}>
               <h2>{t.memo}</h2>
               <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Memo" />
-              <button type="button" onClick={saveNote}><Save size={18} />{t.command}</button>
+              <button type="button" onClick={saveNote}><Save size={22} />{t.command}</button>
             </div>
           </aside>
 
@@ -327,20 +330,21 @@ export default function ConsolePage() {
               <label>{t.barcode}<input value={recordForm.barcode} onChange={(event) => setRecordForm((value) => ({ ...value, barcode: event.target.value }))} placeholder="4900000000000" /></label>
               <label>{t.name}<input value={recordForm.name} onChange={(event) => setRecordForm((value) => ({ ...value, name: event.target.value }))} placeholder="Name" /></label>
               <label>Memo<input value={recordForm.memo} onChange={(event) => setRecordForm((value) => ({ ...value, memo: event.target.value }))} placeholder="Optional" /></label>
-              <button className={styles.primary} type="submit"><Plus size={18} />{editingId ? t.command : t.register}</button>
+              <button className={styles.primary} type="submit"><Plus size={22} />{editingId ? t.command : t.register}</button>
             </form>
 
             <div className={styles.searchbar}>
-              <Search size={18} />
+              <Search size={23} />
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} />
-              <button type="button" onClick={handleScanPlaceholder}><ScanLine size={18} />{t.scan}</button>
-              <button type="button" onClick={downloadCsv}><Download size={18} />{t.download}</button>
+              <button type="button" onClick={handleScanPlaceholder}><ScanLine size={22} />{t.scan}</button>
+              <button type="button" onClick={downloadCsv}><Download size={22} />{t.download}</button>
             </div>
 
             <div className={styles.tableWrap}>
               <table>
                 <thead><tr><th>{t.barcode}</th><th>{t.name}</th><th>Memo</th><th>ID</th><th></th></tr></thead>
                 <tbody>
+                  {filteredRecords.length === 0 && <tr><td className={styles.emptyCell} colSpan={5}>{t.empty}</td></tr>}
                   {filteredRecords.map((record) => (
                     <tr key={record.id} onDoubleClick={() => editRecord(record)}>
                       <td>{record.barcode}</td><td>{record.name}</td><td>{record.memo}</td><td>{record.ownerId}</td>
