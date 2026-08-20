@@ -1,8 +1,9 @@
 :root {
-  color-scheme: light;
-  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, Arial, sans-serif;
-  background: #eef1f5;
-  color: #1f2937;
+  color-scheme: light dark;
+  font-family: "Inter", "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, Arial, sans-serif;
+  background: #eef4fb;
+  color: #0f1d32;
+  text-rendering: geometricPrecision;
 }
 
 * {
@@ -15,6 +16,10 @@ body {
   min-height: 100%;
 }
 
+body {
+  min-width: 320px;
+}
+
 button,
 input,
 textarea {
@@ -23,4 +28,11 @@ textarea {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
