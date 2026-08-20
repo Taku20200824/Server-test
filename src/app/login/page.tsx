@@ -11,7 +11,6 @@ import styles from "./LoginPage.module.css";
 type Language = "ja" | "en" | "mn";
 type Mode = "login" | "create";
 type StatusKind = "info" | "error";
-type LabelSet = typeof labels.ja;
 
 const labels = {
   ja: {
@@ -78,6 +77,8 @@ const labels = {
     authDenied: "Anonymous login унтраалттай байна. Firebase Authentication > Sign-in method дээр Anonymous-г enable хийнэ үү."
   }
 };
+
+type LabelSet = typeof labels.ja;
 
 function getFirebaseMessage(error: unknown, t: LabelSet) {
   const message = error instanceof Error ? error.message : "Firebase error";
