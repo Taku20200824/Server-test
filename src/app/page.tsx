@@ -1,5 +1,6 @@
-import { Activity, ChevronRight, Copy, MapPin, RadioTower, Shield, Trophy, Users } from "lucide-react";
-import { features, site, stats } from "@/lib/site-data";
+import { ChevronRight, Copy, RadioTower, Shield, Trophy, Users } from "lucide-react";
+import { LiveServerStatus } from "@/components/live-server-status";
+import { features, serverStatusFallback, site, stats } from "@/lib/site-data";
 
 const navItems = ["Server", "Rules", "Dinosaurs", "Map", "Leaderboard", "Events"];
 
@@ -34,36 +35,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="server" className="statusBand">
-        <div className="statusCard online">
-          <Activity size={20} />
-          <div>
-            <span>Status</span>
-            <strong>Firebase ready</strong>
-          </div>
-        </div>
-        <div className="statusCard">
-          <Users size={20} />
-          <div>
-            <span>Capacity</span>
-            <strong>32 players</strong>
-          </div>
-        </div>
-        <div className="statusCard">
-          <MapPin size={20} />
-          <div>
-            <span>Location</span>
-            <strong>{site.location}</strong>
-          </div>
-        </div>
-      </section>
+      <LiveServerStatus fallback={serverStatusFallback} />
 
       <section className="gridSection" aria-label="Server overview">
         <div className="sectionLead">
           <p className="eyebrow">Community Control Center</p>
-          <h2>Built like THE-ISLE, ready for a separate Firebase project.</h2>
+          <h2>Built like THE-ISLE, connected to Firebase serverStatus/main.</h2>
           <p>
-            This repo now has the Vercel app shell, Firebase web config path, Firestore rules, and environment template needed to connect a brand-new Firebase project.
+            The homepage now reads Firestore data from the Firebase document you opened, while still falling back to safe default values when Firebase variables are missing.
           </p>
         </div>
         <div className="featureGrid">
@@ -103,7 +82,7 @@ export default function Home() {
 
       <footer>
         <span>{site.name}</span>
-        <span>Vercel + Next.js + separate Firebase project</span>
+        <span>Vercel + Next.js + Firebase Firestore</span>
       </footer>
     </main>
   );
