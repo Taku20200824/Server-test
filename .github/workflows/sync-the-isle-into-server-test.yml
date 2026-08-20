@@ -1,0 +1,104 @@
+name: Sync THE-ISLE into Server-test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/sync-the-isle-into-server-test.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Server-test
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone THE-ISLE source
+        run: |
+          git clone --depth 1 https://github.com/Taku20200824/THE-ISLE.git /tmp/the-isle
+
+      - name: Replace repository contents with THE-ISLE app
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          rsync -a --exclude='.git' /tmp/the-isle/ ./
+
+          cat > .env.example <<'EOF'
+          # Server-test dedicated Firebase project. Do not use THE-ISLE's taku-f8db6 project here.
+          NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyAo3w64EElNUR-usHXoIQF-KomKtO6ykII
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=server-test-ef8cb.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID=server-test-ef8cb
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=server-test-ef8cb.firebasestorage.app
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=104577412937
+          NEXT_PUBLIC_FIREBASE_APP_ID=1:104577412937:web:b5842a5022610cd74e7498
+
+          FIREBASE_PROJECT_ID=server-test-ef8cb
+          FIREBASE_CLIENT_EMAIL=
+          FIREBASE_PRIVATE_KEY=
+          FIREBASE_ADMIN_EMAILS=
+
+          NEXT_PUBLIC_SITE_NAME=ASIA JP,MNG,KR Test
+          NEXT_PUBLIC_DISCORD_URL=https://discord.gg/vmn3YjCZSE
+          NEXT_PUBLIC_SERVER_IP=209.102.250.73
+          NEXT_PUBLIC_SERVER_PORT=9075
+          NEXT_PUBLIC_SERVER_LOCATION=Singapore
+
+          DATABASE_URL=file:./dev.db
+          NEXTAUTH_URL=
+          NEXTAUTH_SECRET=
+          DISCORD_CLIENT_ID=
+          DISCORD_CLIENT_SECRET=
+          SERVER_QUERY_ENABLED=true
+          SERVER_QUERY_PORT=
+          SERVER_QUERY_MAX_AGE_SECONDS=180
+          STEAM_VOICE_SECRET=
+          STEAM_WEB_API_KEY=
+          SERVER_TRACKER_SECRET=
+          EOF
+
+          cat > README.md <<'EOF'
+          # Server-test The Isle Community
+
+          This repository now uses the same Next.js application structure as `Taku20200824/THE-ISLE`, but it is wired for its own Firebase project:
+
+          - Firebase project: `server-test-ef8cb`
+          - Vercel project: `server-test`
+          - Production URL: `https://server-test-pi-eight.vercel.app`
+
+          Do not connect this repo to `taku-f8db6`; that Firebase project belongs to THE-ISLE.
+
+          ## Local Setup
+
+          ```bash
+          pnpm install
+          cp .env.example .env
+          pnpm prisma:generate
+          pnpm dev
+          ```
+
+          ## Firebase
+
+          Firestore is enabled in `asia-northeast2` and seeded with Server-test data collections such as `serverStatus`, `announcements`, `features`, `rules`, `events`, `staff`, `siteText`, `scores`, `mapMarkers`, and `gallery`.
+
+          Public reads are allowed for site content. Writes are admin-only by `firestore.rules`.
+
+          ## Vercel
+
+          Set the Firebase public variables from `.env.example` in Vercel Environment Variables. Admin/private variables can stay empty until admin features are needed.
+          EOF
+
+      - name: Commit synced app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Replace Server-test with THE-ISLE app structure"
+            git push
+          fi
