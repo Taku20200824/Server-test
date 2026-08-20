@@ -1,0 +1,84 @@
+name: Seed Server-test Firestore
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/seed-server-test-firestore.yml
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Seed Firestore documents
+        env:
+          FIREBASE_PROJECT_ID: server-test-ef8cb
+          FIREBASE_API_KEY: AIzaSyAo3w64EElNUR-usHXoIQF-KomKtO6ykII
+        run: |
+          node <<'NODE'
+          const projectId = process.env.FIREBASE_PROJECT_ID;
+          const apiKey = process.env.FIREBASE_API_KEY;
+          const base = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+          function val(v) {
+            if (typeof v === 'string') return { stringValue: v };
+            if (typeof v === 'number' && Number.isInteger(v)) return { integerValue: String(v) };
+            if (typeof v === 'number') return { doubleValue: v };
+            if (typeof v === 'boolean') return { booleanValue: v };
+            if (Array.isArray(v)) return { arrayValue: { values: v.map(val) } };
+            if (v && typeof v === 'object') return { mapValue: { fields: fields(v) } };
+            return { nullValue: null };
+          }
+
+          function fields(obj) {
+            return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, val(v)]));
+          }
+
+          async function put(path, data) {
+            const response = await fetch(`${base}/${path}?key=${apiKey}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fields: fields(data) }),
+            });
+            const text = await response.text();
+            if (!response.ok) throw new Error(`${path}: ${response.status} ${text}`);
+            console.log(`Seeded ${path}`);
+          }
+
+          const docs = [
+            ['serverStatus/main', {
+              serverName: 'ASIA JP,MNG,KR Test',
+              status: 'online',
+              ip: '209.102.250.73',
+              port: 9075,
+              location: 'Singapore',
+              onlinePlayers: 0,
+              maxPlayers: 32,
+              version: 'Evrima',
+              map: 'Gateway',
+              discordUrl: 'https://discord.gg/vmn3YjCZSE',
+              hostingProvider: 'BisectHosting',
+              description: 'A dedicated Server-test Firebase dataset for the Asia The Isle community site.',
+            }],
+            ['announcements/welcome', { title: 'Server-test Firebase is live', body: 'This is the dedicated Firebase project for the Server-test Vercel site.', date: '2026-08-20', order: 1 }],
+            ['announcements/server-ready', { title: 'Asia server profile ready', body: 'Server status, rules, features, events, and staff collections are prepared for the new project.', date: '2026-08-20', order: 2 }],
+            ['features/community', { title: 'Asia Community', description: 'A regional The Isle hub for Japan, Mongolia, Korea, Hong Kong, Taiwan, Singapore, and Southeast Asia.', icon: 'Users', order: 1 }],
+            ['features/live-status', { title: 'Live Server Status', description: 'The homepage reads serverStatus/main from this Firebase project.', icon: 'RadioTower', order: 2 }],
+            ['features/rules-events', { title: 'Rules And Events', description: 'Firestore collections are ready for announcements, rules, events, staff, and player data.', icon: 'Shield', order: 3 }],
+            ['rules/fair-play', { title: 'Fair Play', icon: 'Shield', items: ['No cheating or exploiting.', 'No harassment or hate speech.', 'Respect staff decisions during events.'], order: 1 }],
+            ['rules/community', { title: 'Community', icon: 'Users', items: ['Use Discord for reports and support.', 'Keep regional chat friendly and useful.', 'Help new players learn server basics.'], order: 2 }],
+            ['events/weekend-survival', { title: 'Weekend Survival Night', type: 'Community', when: 'Every weekend', icon: 'CalendarDays', order: 1 }],
+            ['staff/admin', { name: 'TAKU', role: 'Owner', discord: 'TAKU', avatar: '', order: 1 }],
+            ['siteText/main', {
+              en: { heroBadge: 'The Isle Evrima Asia Community', heroBody: 'A dedicated Server-test Firebase dataset for the Asia community site.', joinDiscord: 'Join Discord', connectServer: 'Copy Server' },
+              mn: { heroBody: 'Server-test site-d zoriulsan tusdaa Firebase data belen bolloo.' },
+              ja: { heroBody: 'Server-test サイト専用の Firebase データが準備されました。' },
+              ko: { heroBody: 'Server-test 사이트 전용 Firebase 데이터가 준비되었습니다.' },
+            }],
+            ['scores/demo-player', { username: 'Demo Player', playtime: 0, kills: 0, deaths: 0, growth: 'Fresh', nest: 'None', dinosaur: 'Omniraptor', discord: '', avatar: '' }],
+            ['mapMarkers/spawn-south', { id: 'spawn-south', type: 'spawn', name: 'South Spawn', x: 48, y: 72, risk: 'Medium', note: 'Starter marker for Server-test map data.', order: 1 }],
+            ['gallery/server-banner', { type: 'image', title: 'Server-test Community', image: '', order: 1 }],
+          ];
+
+          for (const [path, data] of docs) await put(path, data);
+          NODE
