@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from "firebase/firestore";
 import { Search, UserPlus } from "lucide-react";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-client";
 
 type Employee = {
   id: string;
