@@ -19,6 +19,15 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /employees/{documentId} {
+      allow read: if true;
+      allow create: if request.resource.data.employeeId is string
+        && request.resource.data.name is string
+        && request.resource.data.employeeId.size() > 0
+        && request.resource.data.name.size() > 0;
+      allow update, delete: if isAdmin();
+    }
+
     match /siteText/{documentId} {
       allow read: if true;
       allow write: if isAdmin();
