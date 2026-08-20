@@ -1,6 +1,19 @@
-.vscode/
+# Next.js / Node
+node_modules/
+.next/
+out/
+.vercel/
+.env
+.env.*
+!.env.example
 
-# Local Laravel/runtime files
+# Firebase local files
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Local Laravel/runtime files kept from the old IRIS app
 laravel-front/.env
 laravel-front/.env.*
 !laravel-front/.env.example
@@ -27,5 +40,6 @@ iris-local.key
 iris-local.crt
 
 # OS/editor noise
+.vscode/
 .DS_Store
 Thumbs.db
