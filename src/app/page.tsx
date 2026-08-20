@@ -1,4 +1,5 @@
 import { ChevronRight, Database, RadioTower, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { EmployeeFirebasePanel } from "@/components/employee-firebase-panel";
 import { LiveServerStatus } from "@/components/live-server-status";
 import { features, serverStatusFallback, site, stats } from "@/lib/site-data";
 
@@ -31,7 +32,7 @@ export default function Home() {
           <p className="eyebrow"><RadioTower size={16} /> Firebase connected Server-test</p>
           <h1>{site.name}</h1>
           <p className="heroText">
-            Employee registration, user search, and IRIS/Laravel test work are kept as the site's main purpose. Firebase only adds live dashboard movement.
+            Employee registration, user search, and IRIS/Laravel test work are kept as the site's main purpose. Registration and user data are stored in Firebase.
           </p>
           <div className="heroActions">
             <a className="primaryAction" href="#register">Open register flow <ChevronRight size={18} /></a>
@@ -47,7 +48,7 @@ export default function Home() {
           <p className="eyebrow">Project Control</p>
           <h2>社員登録と検索のServer-testに戻しました。</h2>
           <p>
-            Repository content points to IRIS class samples, Laravel front-end work, barcode handling, mobile API registration, and user search. The page keeps that meaning and uses only live behavior from Firebase.
+            Repository content points to IRIS class samples, Laravel front-end work, barcode handling, mobile API registration, and user search. The live register panel writes user data to Firebase Firestore.
           </p>
         </div>
         <div className="featureGrid">
@@ -63,6 +64,8 @@ export default function Home() {
           })}
         </div>
       </section>
+
+      <EmployeeFirebasePanel />
 
       <section id="search" className="statsBand">
         {stats.map(([label, value]) => (
@@ -81,7 +84,7 @@ export default function Home() {
         <ul>
           <li>社員登録 samples stay the main direction.</li>
           <li>User search and barcode/API files are represented as app functions.</li>
-          <li>Firebase is separate and used for live status only.</li>
+          <li>Firebase is separate and stores status plus employee user data.</li>
         </ul>
       </section>
 
