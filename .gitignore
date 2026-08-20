@@ -1,45 +1,9 @@
-# Next.js / Node
-node_modules/
-.next/
-out/
-.vercel/
+.next
+node_modules
+.pnpm-store
 .env
-.env.*
-!.env.example
-
-# Firebase local files
-.firebase/
-firebase-debug.log
-firestore-debug.log
-ui-debug.log
-
-# Local Laravel/runtime files kept from the old IRIS app
-laravel-front/.env
-laravel-front/.env.*
-!laravel-front/.env.example
-laravel-front/node_modules/
-laravel-front/vendor/
-laravel-front/public/build/
-laravel-front/public/hot
-laravel-front/public/storage/
-laravel-front/storage/*.key
-laravel-front/storage/framework/cache/
-laravel-front/storage/framework/sessions/
-laravel-front/storage/framework/testing/
-laravel-front/storage/framework/views/
-laravel-front/storage/logs/
-laravel-front/.phpunit.result.cache
-
-# nginx runtime/logs
-nginx-runtime/
-*.log
-nginx.pid
-
-# Local HTTPS private material
-iris-local.key
-iris-local.crt
-
-# OS/editor noise
-.vscode/
-.DS_Store
-Thumbs.db
+.env*.local
+dist
+coverage
+*.tsbuildinfo
+prisma/dev.db
