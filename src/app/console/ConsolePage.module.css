@@ -120,6 +120,37 @@
   padding: 0 12px;
 }
 
+.announcement {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(210, 232, 255, 0.2);
+  border-top: 0;
+  color: #eaf3ff;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+  padding: 12px;
+}
+
+.announcement h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.announcement p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.announcementDate {
+  color: #8bd3ff;
+  font-size: 12px !important;
+  font-weight: 800;
+  margin-bottom: 4px !important;
+}
+
 .workspace {
   align-items: start;
   background: rgba(241, 247, 255, 0.14);
@@ -291,6 +322,7 @@
 
 .dark .header,
 .dark .workspace,
+.dark .announcement,
 .dark .sidepanel,
 .dark .mainpanel,
 .dark .accountBox,
@@ -339,14 +371,15 @@
     flex-direction: column;
   }
 
-  .tools,
-  .searchbar {
-    flex-wrap: wrap;
-  }
-
+  .announcement,
   .workspace,
   .recordForm {
     grid-template-columns: 1fr;
+  }
+
+  .tools,
+  .searchbar {
+    flex-wrap: wrap;
   }
 
   .searchbar input {
