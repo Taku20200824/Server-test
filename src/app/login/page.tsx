@@ -9,42 +9,52 @@ import { auth, db } from "@/lib/firebase";
 import styles from "./LoginPage.module.css";
 
 type Language = "ja" | "en" | "mn";
+type Mode = "login" | "create";
 
 const labels = {
   ja: {
     id: "4桁ID",
     name: "名前",
     login: "ログイン",
-    register: "新規登録",
+    create: "アカウント作成",
     title: "IRIS Console",
     subtitle: "Server-test 管理コンソール",
-    hint: "既存ユーザーは4桁IDだけでログインできます。新規登録は名前も入力してください。",
+    loginHint: "登録済みの4桁IDでログインします。",
+    createHint: "新しい4桁IDと名前でアカウントを作成します。",
     idError: "4桁IDを入力してください",
-    nameError: "新規登録には名前が必要です",
+    nameError: "アカウント作成には名前が必要です",
+    missing: "このIDはまだ登録されていません。アカウント作成を選んでください。",
+    exists: "このIDはすでに登録済みです。ログインを選んでください。",
     loading: "接続中..."
   },
   en: {
     id: "4-digit ID",
     name: "Name",
     login: "Login",
-    register: "Register",
+    create: "Create Account",
     title: "IRIS Console",
     subtitle: "Server-test management console",
-    hint: "Existing users can login with the 4-digit ID. New users also need a name.",
+    loginHint: "Login with an existing 4-digit ID.",
+    createHint: "Create an account with a new 4-digit ID and name.",
     idError: "Enter a 4-digit ID",
-    nameError: "Name is required for registration",
+    nameError: "Name is required to create an account",
+    missing: "This ID is not registered yet. Choose Create Account.",
+    exists: "This ID already exists. Choose Login.",
     loading: "Connecting..."
   },
   mn: {
     id: "4 оронтой ID",
     name: "Нэр",
     login: "Нэвтрэх",
-    register: "Бүртгэх",
+    create: "Аккаунт үүсгэх",
     title: "IRIS Console",
     subtitle: "Server-test удирдлагын консол",
-    hint: "Бүртгэлтэй хэрэглэгч 4 оронтой ID-гаар нэвтэрнэ. Шинэ хэрэглэгч нэрээ оруулна.",
+    loginHint: "Бүртгэлтэй 4 оронтой ID-гаар нэвтэрнэ.",
+    createHint: "Шинэ 4 оронтой ID болон нэрээр аккаунт үүсгэнэ.",
     idError: "4 оронтой ID оруулна уу",
-    nameError: "Шинэ бүртгэлд нэр шаардлагатай",
+    nameError: "Аккаунт үүсгэхэд нэр шаардлагатай",
+    missing: "Энэ ID бүртгэлгүй байна. Аккаунт үүсгэхийг сонгоно уу.",
+    exists: "Энэ ID аль хэдийн байна. Нэвтрэхийг сонгоно уу.",
     loading: "Холбогдож байна..."
   }
 };
@@ -52,6 +62,7 @@ const labels = {
 export default function LoginPage() {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("ja");
+  const [mode, setMode] = useState<Mode>("login");
   const [dark, setDark] = useState(false);
   const [accountId, setAccountId] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -64,11 +75,17 @@ export default function LoginPage() {
     setLanguage((value) => (value === "ja" ? "en" : value === "en" ? "mn" : "ja"));
   }
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const cleanId = accountId.replace(/\D/g, "").slice(0, 4);
+    const cleanName = displayName.trim();
+
     if (cleanId.length !== 4) {
       setStatus(t.idError);
+      return;
+    }
+    if (mode === "create" && !cleanName) {
+      setStatus(t.nameError);
       return;
     }
 
@@ -79,22 +96,34 @@ export default function LoginPage() {
       const credential = await signInAnonymously(auth);
       const accountRef = doc(db, "irisAccounts", cleanId);
       const accountSnapshot = await getDoc(accountRef);
-      const existingName = accountSnapshot.exists() ? accountSnapshot.data().displayName : "";
-      const name = (displayName.trim() || existingName || "").trim();
 
-      if (!name) {
-        setStatus(t.nameError);
+      if (mode === "login") {
+        if (!accountSnapshot.exists()) {
+          setStatus(t.missing);
+          setBusy(false);
+          return;
+        }
+
+        const data = accountSnapshot.data();
+        const name = typeof data.displayName === "string" ? data.displayName : cleanId;
+        window.localStorage.setItem("irisAccount", JSON.stringify({ id: cleanId, displayName: name }));
+        router.replace("/console");
+        return;
+      }
+
+      if (accountSnapshot.exists()) {
+        setStatus(t.exists);
         setBusy(false);
         return;
       }
 
       await setDoc(accountRef, {
-        displayName: name,
+        displayName: cleanName,
         authUid: credential.user.uid,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
-      window.localStorage.setItem("irisAccount", JSON.stringify({ id: cleanId, displayName: name }));
+      window.localStorage.setItem("irisAccount", JSON.stringify({ id: cleanId, displayName: cleanName }));
       router.replace("/console");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Firebase error");
@@ -117,21 +146,34 @@ export default function LoginPage() {
           </div>
         </header>
 
-        <form className={styles.card} onSubmit={handleLogin}>
+        <form className={styles.card} onSubmit={handleSubmit}>
           <div className={styles.cardHead}>
-            <LogIn size={22} />
-            <h2>{t.login}</h2>
+            {mode === "login" ? <LogIn size={22} /> : <UserPlus size={22} />}
+            <h2>{mode === "login" ? t.login : t.create}</h2>
           </div>
+
+          <div className={styles.modeTabs}>
+            <button className={mode === "login" ? styles.activeTab : styles.modeTab} type="button" onClick={() => setMode("login")}><LogIn size={16} />{t.login}</button>
+            <button className={mode === "create" ? styles.activeTab : styles.modeTab} type="button" onClick={() => setMode("create")}><UserPlus size={16} />{t.create}</button>
+          </div>
+
           <label>
             {t.id}
             <input value={accountId} inputMode="numeric" maxLength={4} onChange={(event) => setAccountId(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0001" autoFocus />
           </label>
-          <label>
-            {t.name}
-            <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Taku" />
-          </label>
-          <button className={styles.primary} disabled={busy} type="submit"><UserPlus size={18} />{displayName.trim() ? t.register : t.login}</button>
-          <p className={styles.hint}>{t.hint}</p>
+
+          {mode === "create" && (
+            <label>
+              {t.name}
+              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Taku" />
+            </label>
+          )}
+
+          <button className={styles.primary} disabled={busy} type="submit">
+            {mode === "login" ? <LogIn size={18} /> : <UserPlus size={18} />}
+            {mode === "login" ? t.login : t.create}
+          </button>
+          <p className={styles.hint}>{mode === "login" ? t.loginHint : t.createHint}</p>
           <p className={styles.status}>{status}</p>
         </form>
       </section>
