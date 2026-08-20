@@ -1,28 +1,17 @@
-# Server-test The Isle Community
+# Server-test
 
-This repository now uses the same Next.js application structure as `Taku20200824/THE-ISLE`, but it is wired for its own Firebase project:
+Server-test is an IRIS/Laravel-oriented employee registration and user search workspace.
 
-- Firebase project: `server-test-ef8cb`
-- Vercel project: `server-test`
-- Production URL: `https://server-test-pi-eight.vercel.app`
+The root Next.js site is a lightweight status dashboard for the project. Its behavior is connected to the separate Firebase project `server-test-ef8cb`, so Firestore updates can change the displayed system status without rebuilding Vercel.
 
-Do not connect this repo to `taku-f8db6`; that Firebase project belongs to THE-ISLE.
+## Main areas
 
-## Local Setup
-
-```bash
-pnpm install
-cp .env.example .env
-pnpm prisma:generate
-pnpm dev
-```
+- Employee registration samples in `Test/EmployeeReg.cls`
+- User search sample in `DEMO/UserSearch.cls`
+- Laravel front-end/API work under `laravel-front/`
+- Mobile/API register sample in `iris-mobile-api-with-register.cls`
+- Next.js Firebase dashboard under `src/`
 
 ## Firebase
 
-Firestore is enabled in `asia-northeast2` and seeded with Server-test data collections such as `serverStatus`, `announcements`, `features`, `rules`, `events`, `staff`, `siteText`, `scores`, `mapMarkers`, and `gallery`.
-
-Public reads are allowed for site content. Writes are admin-only by `firestore.rules`.
-
-## Vercel
-
-Set the Firebase public variables from `.env.example` in Vercel Environment Variables. Admin/private variables can stay empty until admin features are needed.
+Vercel should use the `NEXT_PUBLIC_FIREBASE_*` variables from `.env.example`. The dashboard reads `serverStatus/main` from Firestore.
