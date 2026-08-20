@@ -6,6 +6,18 @@ export const site = {
   location: process.env.NEXT_PUBLIC_SERVER_LOCATION || "Singapore",
 };
 
+export const serverStatusFallback = {
+  serverName: site.name,
+  status: "online",
+  ip: site.serverIp,
+  port: site.serverPort,
+  location: site.location,
+  onlinePlayers: 0,
+  maxPlayers: 32,
+  map: "Gateway",
+  version: "Evrima",
+};
+
 export const features = [
   {
     title: "Asia Community",
@@ -13,7 +25,7 @@ export const features = [
   },
   {
     title: "Live Server Hub",
-    body: "Firebase-ready server status, news, rules, leaderboard, events, and admin-managed content.",
+    body: "Firebase reads serverStatus/main for status, players, IP, port, location, map, and version.",
   },
   {
     title: "Vercel Ready",
@@ -23,7 +35,7 @@ export const features = [
 
 export const stats = [
   ["Region", "Asia"],
-  ["Mode", "Evrima"],
-  ["Map", "Gateway"],
-  ["Players", "32 slots"],
+  ["Mode", serverStatusFallback.version],
+  ["Map", serverStatusFallback.map],
+  ["Players", `${serverStatusFallback.maxPlayers} slots`],
 ];
