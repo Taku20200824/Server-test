@@ -1,0 +1,41 @@
+name: Debug Build Log
+
+on:
+  push:
+    paths:
+      - .github/workflows/debug-build-log.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and build
+        run: |
+          set +e
+          {
+            echo "commit=$(git rev-parse HEAD)"
+            echo "node=$(node --version)"
+            echo "npm=$(npm --version)"
+            npm install
+            echo "--- npm run build ---"
+            npm run build
+            echo "exit_code=$?"
+          } > build-debug.log 2>&1
+          exit 0
+      - name: Commit build log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add build-debug.log
+          git commit -m "Add build debug log" || exit 0
+          git push
