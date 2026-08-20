@@ -2,19 +2,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isFourDigitAccount(accountId) {
+      return accountId.matches('^[0-9]{4}$');
+    }
+
     match /irisAccounts/{accountId} {
-      allow read: if true;
-      allow create, update: if accountId.matches('^[0-9]{4}$')
-        && request.resource.data.keys().hasOnly(['displayName', 'updatedAt'])
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && isFourDigitAccount(accountId)
+        && request.resource.data.keys().hasOnly(['displayName', 'authUid', 'updatedAt'])
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
-        && request.resource.data.displayName.size() <= 80;
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.authUid == request.auth.uid;
       allow delete: if false;
     }
 
     match /irisRecords/{recordId} {
-      allow read: if true;
-      allow create, update: if request.resource.data.keys().hasOnly(['barcode', 'name', 'memo', 'ownerId', 'updatedAt'])
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['barcode', 'name', 'memo', 'ownerId', 'authUid', 'updatedAt'])
         && request.resource.data.barcode is string
         && request.resource.data.barcode.size() > 0
         && request.resource.data.barcode.size() <= 80
@@ -23,16 +34,19 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 160
         && request.resource.data.memo is string
         && request.resource.data.memo.size() <= 1000
-        && request.resource.data.ownerId.matches('^[0-9]{4}$');
-      allow delete: if true;
+        && request.resource.data.ownerId.matches('^[0-9]{4}$')
+        && request.resource.data.authUid == request.auth.uid;
+      allow delete: if signedIn();
     }
 
     match /irisNotes/{accountId} {
-      allow read: if true;
-      allow create, update: if accountId.matches('^[0-9]{4}$')
-        && request.resource.data.keys().hasOnly(['body', 'displayName', 'updatedAt'])
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && isFourDigitAccount(accountId)
+        && request.resource.data.keys().hasOnly(['body', 'displayName', 'authUid', 'updatedAt'])
         && request.resource.data.body is string
-        && request.resource.data.body.size() <= 3000;
+        && request.resource.data.body.size() <= 3000
+        && request.resource.data.authUid == request.auth.uid;
       allow delete: if false;
     }
   }
