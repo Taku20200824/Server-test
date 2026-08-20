@@ -14,7 +14,7 @@ export function getFirebaseAdminApp() {
     return getApps()[0];
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "taku-f8db6";
+  const projectId = process.env.FIREBASE_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "server-test-ef8cb";
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = getPrivateKey();
 
