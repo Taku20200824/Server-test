@@ -51,5 +51,55 @@ service cloud.firestore {
         && request.resource.data.authUid == request.auth.uid;
       allow delete: if false;
     }
+
+    match /announcements/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /events/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /features/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /gallery/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /mapMarkers/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /rules/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /scores/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /serverStatus/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /siteText/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /staff/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
   }
 }
