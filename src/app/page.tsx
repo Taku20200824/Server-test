@@ -13,7 +13,7 @@ import {
   setDoc,
   updateDoc
 } from "firebase/firestore";
-import { Download, Languages, Moon, Plus, Save, Search, Trash2, UserRound } from "lucide-react";
+import { Download, Languages, LogOut, Moon, Plus, Save, Search, Trash2, UserRound } from "lucide-react";
 import { db } from "@/lib/firebase";
 
 type Account = {
@@ -37,11 +37,13 @@ const labels = {
     command: "登録 / 更新",
     delete: "削除",
     download: "CSV",
+    login: "ログイン / 登録",
+    logout: "ログアウト",
     memo: "付箋メモ",
     name: "名前",
     register: "登録",
     search: "検索",
-    subtitle: "Vercelで動くServer-test用コンソール。データはFirebase Firestoreへ保存します。"
+    subtitle: "Server-test Console"
   },
   en: {
     account: "Account",
@@ -49,11 +51,13 @@ const labels = {
     command: "Save",
     delete: "Delete",
     download: "CSV",
+    login: "Login / Register",
+    logout: "Logout",
     memo: "Sticky note",
     name: "Name",
     register: "Register",
     search: "Search",
-    subtitle: "Server-test console for Vercel. Data is stored in Firebase Firestore."
+    subtitle: "Server-test Console"
   },
   mn: {
     account: "Аккаунт",
@@ -61,11 +65,13 @@ const labels = {
     command: "Хадгалах",
     delete: "Устгах",
     download: "CSV",
+    login: "Нэвтрэх / Бүртгэх",
+    logout: "Гарах",
     memo: "Тэмдэглэл",
     name: "Нэр",
     register: "Бүртгэх",
     search: "Хайх",
-    subtitle: "Vercel дээр ажиллах Server-test консол. Өгөгдөл Firebase Firestore-д хадгалагдана."
+    subtitle: "Server-test Console"
   }
 };
 
@@ -135,13 +141,13 @@ export default function Home() {
       updatedAt: serverTimestamp()
     }, { merge: true });
     setCurrentAccount(account);
-    setStatus(`Account ${cleanId} saved`);
+    setStatus(`Account ${cleanId} logged in`);
   }
 
   async function handleRecord(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!currentAccount) {
-      setStatus("先にアカウント登録してください");
+      setStatus("先にログインしてください");
       return;
     }
     if (!recordForm.barcode.trim() || !recordForm.name.trim()) {
@@ -171,7 +177,7 @@ export default function Home() {
 
   async function saveNote() {
     if (!currentAccount) {
-      setStatus("先にアカウント登録してください");
+      setStatus("先にログインしてください");
       return;
     }
 
@@ -210,44 +216,75 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
+  const tools = (
+    <div className="toolbar" aria-label="tools">
+      <button type="button" title="language" onClick={() => setLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")}>
+        <Languages size={17} /> {language.toUpperCase()}
+      </button>
+      <button type="button" title="dark mode" onClick={() => setDark((value) => !value)}>
+        <Moon size={17} />
+      </button>
+    </div>
+  );
+
+  if (!currentAccount) {
+    return (
+      <main className={dark ? "theme dark" : "theme"}>
+        <section className="loginShell">
+          <header className="loginHeader">
+            <div>
+              <p className="eyebrow">SERVER-TEST</p>
+              <h1>IRIS Console</h1>
+              <p className="subtitle">{t.subtitle}</p>
+            </div>
+            {tools}
+          </header>
+
+          <form onSubmit={handleAccount} className="loginPanel">
+            <h2>{t.login}</h2>
+            <label>
+              4桁ID
+              <input value={accountId} inputMode="numeric" maxLength={4} onChange={(event) => setAccountId(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0001" autoFocus />
+            </label>
+            <label>
+              {t.name}
+              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Taku" />
+            </label>
+            <button className="primary" type="submit"><UserRound size={18} />{t.login}</button>
+            <p className="formStatus">{status}</p>
+          </form>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className={dark ? "theme dark" : "theme"}>
       <section className="shell">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Server-test</p>
+            <p className="eyebrow">SERVER-TEST</p>
             <h1>IRIS Console</h1>
             <p className="subtitle">{t.subtitle}</p>
           </div>
-          <div className="toolbar" aria-label="tools">
-            <button type="button" title="language" onClick={() => setLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")}>
-              <Languages size={18} /> {language.toUpperCase()}
-            </button>
-            <button type="button" title="dark mode" onClick={() => setDark((value) => !value)}>
-              <Moon size={18} />
-            </button>
+          <div className="toolbarGroup">
+            {tools}
+            <button type="button" title="logout" onClick={() => setCurrentAccount(null)}><LogOut size={17} />{t.logout}</button>
           </div>
         </header>
 
         <section className="statusline">
-          <span>{currentAccount ? `${currentAccount.id} / ${currentAccount.displayName}` : "No account"}</span>
+          <span>{`${currentAccount.id} / ${currentAccount.displayName}`}</span>
           <span>{status}</span>
         </section>
 
         <div className="workspace">
           <aside className="panel sidepanel">
-            <form onSubmit={handleAccount} className="stack">
+            <div className="stack accountBox">
               <h2>{t.account}</h2>
-              <label>
-                4桁ID
-                <input value={accountId} inputMode="numeric" maxLength={4} onChange={(event) => setAccountId(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0001" />
-              </label>
-              <label>
-                {t.name}
-                <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Taku" />
-              </label>
-              <button className="primary" type="submit"><UserRound size={18} />{t.register}</button>
-            </form>
+              <p className="accountId">{currentAccount.id}</p>
+              <p className="accountName">{currentAccount.displayName}</p>
+            </div>
 
             <div className="stack noteArea">
               <h2>{t.memo}</h2>
