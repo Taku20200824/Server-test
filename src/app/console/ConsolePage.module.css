@@ -1,72 +1,124 @@
 .page {
+  --bg: #edf4fb;
+  --text: #102039;
+  --muted: #6d8099;
+  --line: rgba(94, 127, 164, 0.1);
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-soft: rgba(247, 252, 255, 0.74);
+  --field: rgba(255, 255, 255, 0.9);
+  --field-text: #102039;
+  --border: rgba(117, 148, 186, 0.18);
+  --cyan: #44c7ef;
+  --teal: #2bd2bc;
+  --violet: #8190f4;
   background:
-    linear-gradient(120deg, rgba(15, 28, 46, 0.94), rgba(25, 62, 84, 0.86), rgba(13, 25, 42, 0.96)),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 70px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 70px);
-  color: #e9f2fb;
+    radial-gradient(circle at 7% 4%, rgba(92, 194, 241, 0.5), transparent 31%),
+    radial-gradient(circle at 88% 78%, rgba(41, 211, 189, 0.3), transparent 25%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, 110px 110px, 110px 110px, auto;
+  color: var(--text);
   min-height: 100vh;
-  padding: 14px;
-  position: relative;
+  padding: 30px;
 }
 
-.page::before {
+.dark {
+  --bg: #040a12;
+  --text: #edf7ff;
+  --muted: #8ea0b8;
+  --line: rgba(114, 148, 190, 0.1);
+  --panel: rgba(15, 24, 36, 0.84);
+  --panel-soft: rgba(25, 35, 50, 0.78);
+  --field: rgba(8, 17, 28, 0.92);
+  --field-text: #edf7ff;
+  --border: rgba(130, 160, 196, 0.22);
   background:
-    radial-gradient(circle at 12% 10%, rgba(82, 185, 255, 0.16), transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(68, 211, 174, 0.12), transparent 24%),
-    linear-gradient(135deg, transparent 22%, rgba(255, 255, 255, 0.055) 50%, transparent 78%);
-  content: "";
-  inset: 0;
-  pointer-events: none;
-  position: fixed;
+    radial-gradient(circle at 6% 4%, rgba(48, 139, 189, 0.46), transparent 31%),
+    radial-gradient(circle at 88% 78%, rgba(12, 146, 118, 0.38), transparent 25%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, 110px 110px, 110px 110px, auto;
 }
 
 .loading {
   align-items: center;
-  background: #111827;
-  color: #e9f2fb;
+  background: #040a12;
+  color: #edf7ff;
   display: flex;
   justify-content: center;
   min-height: 100vh;
 }
 
 .shell {
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  box-shadow: 0 34px 80px rgba(39, 74, 105, 0.22);
   margin: 0 auto;
-  max-width: 1220px;
-  position: relative;
-  z-index: 1;
+  max-width: 1500px;
+  overflow: hidden;
+}
+
+.dark .shell {
+  background:
+    radial-gradient(circle at 3% 0%, rgba(42, 132, 190, 0.36), transparent 28%),
+    radial-gradient(circle at 92% 70%, rgba(14, 147, 119, 0.32), transparent 30%),
+    rgba(8, 17, 28, 0.72);
+  box-shadow: 0 44px 90px rgba(0, 0, 0, 0.48);
 }
 
 .header {
   align-items: center;
-  background: rgba(13, 25, 42, 0.66);
-  backdrop-filter: blur(18px) saturate(150%);
-  border: 1px solid rgba(210, 232, 255, 0.18);
-  border-radius: 10px 10px 0 0;
-  box-shadow: 0 20px 44px rgba(1, 8, 19, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.52);
+  border-bottom: 1px solid var(--border);
   display: flex;
-  gap: 16px;
+  gap: 20px;
   justify-content: space-between;
-  min-height: 76px;
-  padding: 13px 16px;
+  min-height: 132px;
+  padding: 28px 28px;
+}
+
+.dark .header {
+  background: rgba(11, 21, 34, 0.58);
 }
 
 .brand {
-  color: #8bd3ff;
-  font-size: 12px;
-  font-weight: 800;
-  margin: 0 0 5px;
+  align-items: center;
+  color: #1b7ea8;
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  gap: 10px;
+  letter-spacing: 5px;
+  margin: 0 0 12px;
+}
+
+.brand::before,
+.statusline span:first-child::before {
+  background: var(--teal);
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px rgba(43, 210, 188, 0.14);
+  content: "";
+  display: inline-block;
+  height: 11px;
+  width: 11px;
+}
+
+.dark .brand {
+  color: #75d8ff;
 }
 
 .header h1 {
-  font-size: 28px;
+  font-size: clamp(34px, 3.2vw, 44px);
   line-height: 1;
-  margin: 0 0 6px;
+  margin: 0 0 12px;
 }
 
 .header p:last-child {
-  color: #d8e7f6;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 16px;
   margin: 0;
 }
 
@@ -75,7 +127,7 @@
 .actions {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tools button,
@@ -84,194 +136,236 @@
 .noteArea button,
 .recordForm button {
   align-items: center;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(218, 238, 255, 0.22);
-  border-radius: 6px;
-  color: #eef7ff;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(22, 45, 72, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  color: #42536b;
   cursor: pointer;
   display: inline-flex;
-  gap: 7px;
+  font-weight: 900;
+  gap: 10px;
   justify-content: center;
-  min-height: 36px;
-  padding: 0 11px;
+  min-height: 52px;
+  padding: 0 18px;
 }
 
-.tools button:hover,
-.searchbar button:hover,
-.actions button:hover,
-.noteArea button:hover,
-.recordForm button:hover {
-  background: rgba(92, 178, 255, 0.2);
-  border-color: rgba(116, 207, 255, 0.56);
+.dark .tools button,
+.dark .searchbar button,
+.dark .actions button,
+.dark .noteArea button,
+.dark .recordForm button {
+  color: #b8c7db;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.logoutButton {
+  border-color: rgba(234, 99, 136, 0.4) !important;
+  color: #ad2b4c !important;
+}
+
+.dark .logoutButton {
+  color: #ffb8c8 !important;
 }
 
 .statusline {
   align-items: center;
-  background: rgba(219, 234, 249, 0.18);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(210, 232, 255, 0.18);
-  border-top: 0;
-  color: #e2edf7;
+  background: rgba(229, 238, 248, 0.72);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
   display: flex;
-  font-size: 13px;
+  font-size: 16px;
   justify-content: space-between;
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 56px;
+  padding: 0 28px;
+}
+
+.dark .statusline {
+  background: rgba(5, 14, 24, 0.72);
+}
+
+.statusline span:first-child {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-family: Consolas, monospace;
+  font-weight: 900;
+  gap: 12px;
+  letter-spacing: 2px;
 }
 
 .announcement {
   align-items: center;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(18px) saturate(150%);
-  border: 1px solid rgba(210, 232, 255, 0.2);
-  border-top: 0;
-  color: #eaf3ff;
+  background: rgba(67, 199, 238, 0.09);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
   display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
-  padding: 12px;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  padding: 14px 28px;
+}
+
+.announcement h2,
+.announcement p {
+  margin: 0;
 }
 
 .announcement h2 {
   font-size: 16px;
-  margin: 0;
 }
 
 .announcement p {
-  font-size: 13px;
+  color: var(--muted);
   line-height: 1.5;
-  margin: 0;
 }
 
 .announcementDate {
-  color: #8bd3ff;
+  color: #1b9ccb !important;
   font-size: 12px !important;
-  font-weight: 800;
+  font-weight: 900;
+  letter-spacing: 2px;
   margin-bottom: 4px !important;
 }
 
 .workspace {
   align-items: start;
-  background: rgba(241, 247, 255, 0.14);
-  backdrop-filter: blur(20px) saturate(145%);
-  border: 1px solid rgba(210, 232, 255, 0.18);
-  border-top: 0;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 280px minmax(0, 1fr);
-  padding: 12px;
+  gap: 22px;
+  grid-template-columns: 330px minmax(0, 1fr);
+  padding: 28px;
 }
 
 .sidepanel,
 .mainpanel {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(232, 242, 255, 0.54);
-  border-radius: 8px;
-  box-shadow: 0 14px 28px rgba(1, 8, 19, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  color: #1f2937;
-  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 18px 40px rgba(28, 58, 91, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  color: var(--text);
+  padding: 26px;
 }
 
 .accountBox {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(232, 244, 255, 0.58));
-  border: 1px solid rgba(180, 210, 239, 0.5);
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(67, 199, 238, 0.16), rgba(43, 210, 188, 0.16));
+  border: 1px solid rgba(54, 175, 204, 0.24);
+  border-radius: 18px;
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: 14px;
+  min-height: 128px;
+  padding: 24px;
 }
 
 .accountBox h2,
-.noteArea h2 {
-  font-size: 16px;
+.noteArea h2,
+.recordForm label {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
   margin: 0;
 }
 
 .accountId {
-  color: #116093;
-  font-size: 29px;
-  font-weight: 800;
+  color: var(--cyan);
+  font-family: Consolas, monospace;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 8px;
   line-height: 1;
   margin: 0;
 }
 
 .accountName {
-  color: #52606f;
-  font-size: 13px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 900;
   margin: 0;
 }
 
 .noteArea {
-  border-top: 1px solid rgba(183, 205, 228, 0.58);
+  border-top: 1px solid var(--border);
   display: grid;
-  gap: 11px;
-  margin-top: 14px;
-  padding-top: 14px;
+  gap: 18px;
+  margin-top: 24px;
+  padding-top: 24px;
 }
 
 .noteArea textarea,
 .recordForm input,
 .searchbar input {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(178, 199, 222, 0.64);
-  border-radius: 6px;
-  color: #1f2937;
-  min-height: 38px;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--field-text);
+  font-size: 17px;
+  font-weight: 800;
+  min-height: 56px;
   outline: none;
-  padding: 8px 10px;
+  padding: 0 16px;
   width: 100%;
 }
 
 .noteArea textarea {
-  min-height: 158px;
+  min-height: 210px;
+  padding: 18px;
   resize: vertical;
+}
+
+.noteArea textarea::placeholder,
+.recordForm input::placeholder,
+.searchbar input::placeholder {
+  color: rgba(110, 128, 153, 0.72);
 }
 
 .recordForm input:focus,
 .searchbar input:focus,
 .noteArea textarea:focus {
-  border-color: #2b92d0;
-  box-shadow: 0 0 0 3px rgba(43, 146, 208, 0.2);
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(68, 199, 239, 0.16);
 }
 
 .recordForm {
+  align-items: end;
   display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(180px, 1.2fr) auto;
-  margin-bottom: 12px;
+  gap: 14px;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(210px, 1.15fr) auto;
+  margin-bottom: 20px;
 }
 
 .recordForm label {
-  color: #314155;
   display: grid;
-  font-size: 13px;
-  gap: 5px;
+  gap: 10px;
 }
 
 .primary {
-  background: linear-gradient(135deg, #2e8fd6, #3bc7a8) !important;
-  border-color: rgba(76, 185, 231, 0.62) !important;
-  color: #ffffff !important;
-  font-weight: 800;
+  background: linear-gradient(135deg, var(--cyan), var(--teal) 60%, var(--violet)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  min-width: 126px;
 }
 
 .searchbar {
-  background: rgba(247, 251, 255, 0.66);
-  border: 1px solid rgba(190, 211, 232, 0.54);
-  border-radius: 8px;
-  padding: 6px;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto auto;
+  padding: 10px;
 }
 
 .searchbar input {
+  background: transparent;
   border: 0;
   box-shadow: none;
-  min-height: 34px;
+  min-height: 48px;
 }
 
 .tableWrap {
-  margin-top: 12px;
-  max-height: 560px;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  margin-top: 20px;
+  min-height: 190px;
   overflow: auto;
 }
 
@@ -283,23 +377,37 @@
 
 .tableWrap th,
 .tableWrap td {
-  border-bottom: 1px solid rgba(207, 222, 238, 0.8);
-  padding: 9px 8px;
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
   text-align: left;
   vertical-align: middle;
 }
 
 .tableWrap th {
-  background: rgba(231, 241, 251, 0.86);
-  color: #314155;
-  font-size: 12px;
+  background: rgba(226, 236, 248, 0.58);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 2px;
   position: sticky;
   top: 0;
 }
 
+.dark .tableWrap th {
+  background: rgba(21, 31, 45, 0.8);
+}
+
 .tableWrap td {
-  color: #1f2937;
-  font-size: 14px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.emptyCell {
+  border-bottom: 0 !important;
+  font-size: 18px !important;
+  font-weight: 900;
+  height: 130px;
+  text-align: center !important;
 }
 
 .actions {
@@ -308,67 +416,45 @@
 
 .actions button {
   aspect-ratio: 1;
-  min-height: 32px;
+  min-height: 38px;
   padding: 0;
-  width: 32px;
+  width: 38px;
 }
 
-.dark {
-  background:
-    linear-gradient(120deg, rgba(7, 14, 25, 0.96), rgba(13, 35, 52, 0.92), rgba(7, 14, 25, 0.96)),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 70px);
-  color: #e5e7eb;
-}
-
-.dark .header,
-.dark .workspace,
-.dark .announcement,
-.dark .sidepanel,
-.dark .mainpanel,
-.dark .accountBox,
-.dark .noteArea textarea,
-.dark .recordForm input,
-.dark .searchbar,
-.dark .searchbar input,
-.dark .tools button,
-.dark .searchbar button,
-.dark .actions button,
-.dark .noteArea button,
-.dark .recordForm button {
-  background-color: rgba(18, 28, 45, 0.66);
-  border-color: rgba(142, 184, 224, 0.24);
-  color: #e5e7eb;
-}
-
-.dark .statusline {
-  background: rgba(24, 34, 53, 0.72);
-  border-color: rgba(142, 184, 224, 0.2);
-  color: #dbe4f0;
-}
-
-.dark .accountName,
-.dark .recordForm label,
-.dark .tableWrap th {
-  color: #b8c2d2;
-}
-
-.dark .tableWrap th {
-  background: rgba(39, 50, 68, 0.88);
-}
-
-.dark .tableWrap td {
-  color: #e5e7eb;
-}
-
-@media (max-width: 900px) {
-  .page {
-    padding: 10px;
+@media (max-width: 980px) {
+  .page,
+  .dark {
+    background-size: auto, auto, 156px 156px, 156px 156px, auto;
+    padding: 18px;
   }
 
-  .header,
-  .statusline {
+  .shell {
+    border-radius: 36px;
+  }
+
+  .header {
     align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    gap: 28px;
+    padding: 28px;
+  }
+
+  .tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+  }
+
+  .tools button {
+    border-radius: 16px;
+    font-size: 22px;
+    min-height: 66px;
+  }
+
+  .statusline {
+    align-items: start;
+    display: grid;
+    gap: 14px;
+    padding: 14px 28px;
   }
 
   .announcement,
@@ -377,12 +463,115 @@
     grid-template-columns: 1fr;
   }
 
-  .tools,
-  .searchbar {
-    flex-wrap: wrap;
+  .workspace {
+    padding: 26px;
   }
 
+  .sidepanel,
+  .mainpanel {
+    border-radius: 28px;
+  }
+
+  .searchbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .searchbar button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .tableWrap table {
+    min-width: 0;
+  }
+
+  .tableWrap thead {
+    display: none;
+  }
+
+  .tableWrap tr,
+  .tableWrap td {
+    display: block;
+  }
+
+  .tableWrap td {
+    border-bottom: 0;
+    padding: 10px 14px;
+  }
+
+  .actions {
+    justify-content: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 18px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+
+  .header h1 {
+    font-size: 40px;
+  }
+
+  .header p:last-child,
+  .statusline,
+  .accountBox h2,
+  .noteArea h2,
+  .recordForm label {
+    font-size: 22px;
+  }
+
+  .workspace {
+    gap: 22px;
+  }
+
+  .sidepanel,
+  .mainpanel {
+    padding: 26px;
+  }
+
+  .accountBox {
+    border-radius: 20px;
+    padding: 30px;
+  }
+
+  .accountId {
+    font-size: 54px;
+  }
+
+  .accountName {
+    font-size: 24px;
+  }
+
+  .noteArea textarea {
+    min-height: 205px;
+  }
+
+  .noteArea textarea,
+  .recordForm input,
   .searchbar input {
-    flex: 1 1 180px;
+    border-radius: 14px;
+    font-size: 24px;
+    min-height: 70px;
+  }
+
+  .noteArea button,
+  .recordForm button,
+  .searchbar button {
+    border-radius: 14px;
+    font-size: 24px;
+    min-height: 70px;
+  }
+
+  .searchbar {
+    border-radius: 18px;
+  }
+
+  .emptyCell {
+    font-size: 26px !important;
+    height: 160px;
   }
 }
