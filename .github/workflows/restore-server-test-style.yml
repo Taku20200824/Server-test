@@ -1,0 +1,293 @@
+name: Restore Server-test Style
+
+on:
+  push:
+    paths:
+      - .github/workflows/restore-server-test-style.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Restore previous Server-test tree and keep Firebase movement
+        run: |
+          set -euo pipefail
+          base_ref="6ac3e67407228d03649879e2fac01c9d63835fc9"
+
+          find . -mindepth 1 ! -name .git -exec rm -rf {} +
+          git checkout "$base_ref" -- .
+
+          cat > .env.example <<'EOF'
+          NEXT_PUBLIC_SITE_NAME="IRIS Server-test"
+          NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyAo3w64EElNUR-usHXoIQF-KomKtO6ykII"
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="server-test-ef8cb.firebaseapp.com"
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID="server-test-ef8cb"
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="server-test-ef8cb.firebasestorage.app"
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="104577412937"
+          NEXT_PUBLIC_FIREBASE_APP_ID="1:104577412937:web:b5842a5022610cd74e7498"
+          NEXT_PUBLIC_SYSTEM_REGION="Japan"
+          NEXT_PUBLIC_SYSTEM_ENDPOINT="IRIS / Laravel / Firestore"
+          EOF
+
+          cat > README.md <<'EOF'
+          # Server-test
+
+          Server-test is an IRIS/Laravel-oriented employee registration and user search workspace.
+
+          The root Next.js site is a lightweight status dashboard for the project. Its behavior is connected to the separate Firebase project `server-test-ef8cb`, so Firestore updates can change the displayed system status without rebuilding Vercel.
+
+          ## Main areas
+
+          - Employee registration samples in `Test/EmployeeReg.cls`
+          - User search sample in `DEMO/UserSearch.cls`
+          - Laravel front-end/API work under `laravel-front/`
+          - Mobile/API register sample in `iris-mobile-api-with-register.cls`
+          - Next.js Firebase dashboard under `src/`
+
+          ## Firebase
+
+          Vercel should use the `NEXT_PUBLIC_FIREBASE_*` variables from `.env.example`. The dashboard reads `serverStatus/main` from Firestore.
+          EOF
+
+          cat > src/lib/site-data.ts <<'EOF'
+          export const site = {
+            name: process.env.NEXT_PUBLIC_SITE_NAME || "IRIS Server-test",
+            region: process.env.NEXT_PUBLIC_SYSTEM_REGION || "Japan",
+            endpoint: process.env.NEXT_PUBLIC_SYSTEM_ENDPOINT || "IRIS / Laravel / Firestore",
+          };
+
+          export const serverStatusFallback = {
+            serverName: site.name,
+            status: "ready",
+            ip: site.endpoint,
+            port: "live",
+            location: site.region,
+            onlinePlayers: 0,
+            maxPlayers: 3,
+            map: "Employee registration",
+            version: "Server-test",
+          };
+
+          export const features = [
+            {
+              title: "Employee Register",
+              body: "IRIS class samples and Laravel-facing flows for registering employee records and checking submitted data.",
+            },
+            {
+              title: "User Search",
+              body: "Search-oriented sample code is kept as the site's core purpose instead of changing the project into a game community page.",
+            },
+            {
+              title: "Live Firebase Status",
+              body: "The page listens to Firestore serverStatus/main so status, region, endpoint, and counters can move like the ISLE dashboard behavior.",
+            },
+          ];
+
+          export const stats = [
+            ["Project", "Server-test"],
+            ["Core", "Register"],
+            ["Search", "User data"],
+            ["Firebase", "Separate"],
+          ];
+          EOF
+
+          cat > src/components/live-server-status.tsx <<'EOF'
+          "use client";
+
+          import { useEffect, useState } from "react";
+          import { Activity, Database, MapPin } from "lucide-react";
+          import { doc, onSnapshot } from "firebase/firestore";
+          import { db } from "@/lib/firebase";
+
+          type ServerStatus = {
+            serverName: string;
+            status: string;
+            ip: string;
+            port: number | string;
+            location: string;
+            onlinePlayers: number;
+            maxPlayers: number;
+            map: string;
+            version: string;
+          };
+
+          type LiveServerStatusProps = {
+            fallback: ServerStatus;
+          };
+
+          export function LiveServerStatus({ fallback }: LiveServerStatusProps) {
+            const [server, setServer] = useState<ServerStatus>(fallback);
+
+            useEffect(() => {
+              if (!db) return;
+
+              return onSnapshot(doc(db, "serverStatus", "main"), (snapshot) => {
+                if (!snapshot.exists()) return;
+
+                const data = snapshot.data();
+                setServer({
+                  serverName: String(data.serverName || fallback.serverName),
+                  status: String(data.status || fallback.status),
+                  ip: String(data.ip || data.endpoint || fallback.ip),
+                  port: typeof data.port === "number" || typeof data.port === "string" ? data.port : fallback.port,
+                  location: String(data.location || data.Location || fallback.location),
+                  onlinePlayers: Number(data.onlinePlayers ?? data.completed ?? fallback.onlinePlayers),
+                  maxPlayers: Number(data.maxPlayers ?? data.total ?? fallback.maxPlayers),
+                  map: String(data.map || data.module || fallback.map),
+                  version: String(data.version || fallback.version),
+                });
+              });
+            }, [fallback]);
+
+            const isReady = ["ready", "online", "active"].includes(server.status.toLowerCase());
+
+            return (
+              <section id="status" className="statusBand">
+                <div className={`statusCard ${isReady ? "online" : "offline"}`}>
+                  <Activity size={20} />
+                  <div>
+                    <span>Status</span>
+                    <strong>{server.status}</strong>
+                  </div>
+                </div>
+                <div className="statusCard">
+                  <Database size={20} />
+                  <div>
+                    <span>{server.map}</span>
+                    <strong>{server.onlinePlayers}/{server.maxPlayers}</strong>
+                  </div>
+                </div>
+                <div className="statusCard">
+                  <MapPin size={20} />
+                  <div>
+                    <span>{server.location}</span>
+                    <strong>{server.ip}:{server.port}</strong>
+                  </div>
+                </div>
+              </section>
+            );
+          }
+          EOF
+
+          cat > src/app/page.tsx <<'EOF'
+          import { ChevronRight, Database, RadioTower, Search, ShieldCheck, UserPlus } from "lucide-react";
+          import { LiveServerStatus } from "@/components/live-server-status";
+          import { features, serverStatusFallback, site, stats } from "@/lib/site-data";
+
+          const navItems = [
+            ["Status", "#status"],
+            ["Register", "#register"],
+            ["Search", "#search"],
+            ["IRIS", "#iris"],
+          ];
+
+          export default function Home() {
+            return (
+              <main>
+                <header className="nav">
+                  <a className="brand" href="#top" aria-label="Home">
+                    <span className="brandMark">ST</span>
+                    <span>{site.name}</span>
+                  </a>
+                  <nav aria-label="Primary navigation">
+                    {navItems.map(([item, href]) => (
+                      <a key={item} href={href}>{item}</a>
+                    ))}
+                  </nav>
+                  <a className="serviceButton" href="#status">Live</a>
+                </header>
+
+                <section id="top" className="hero">
+                  <div className="heroBackdrop" />
+                  <div className="heroInner">
+                    <p className="eyebrow"><RadioTower size={16} /> Firebase connected Server-test</p>
+                    <h1>{site.name}</h1>
+                    <p className="heroText">
+                      Employee registration, user search, and IRIS/Laravel test work are kept as the site's main purpose. Firebase only adds live dashboard movement.
+                    </p>
+                    <div className="heroActions">
+                      <a className="primaryAction" href="#register">Open register flow <ChevronRight size={18} /></a>
+                      <a className="secondaryAction" href="#status"><Database size={18} /> {site.endpoint}</a>
+                    </div>
+                  </div>
+                </section>
+
+                <LiveServerStatus fallback={serverStatusFallback} />
+
+                <section id="register" className="gridSection" aria-label="Server-test overview">
+                  <div className="sectionLead">
+                    <p className="eyebrow">Project Control</p>
+                    <h2>社員登録と検索のServer-testに戻しました。</h2>
+                    <p>
+                      Repository content points to IRIS class samples, Laravel front-end work, barcode handling, mobile API registration, and user search. The page keeps that meaning and uses only live behavior from Firebase.
+                    </p>
+                  </div>
+                  <div className="featureGrid">
+                    {features.map((feature, index) => {
+                      const Icon = [UserPlus, Search, ShieldCheck][index] ?? ShieldCheck;
+                      return (
+                        <article className="featureCard" key={feature.title}>
+                          <Icon size={24} />
+                          <h3>{feature.title}</h3>
+                          <p>{feature.body}</p>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section id="search" className="statsBand">
+                  {stats.map(([label, value]) => (
+                    <div key={label}>
+                      <span>{label}</span>
+                      <strong>{value}</strong>
+                    </div>
+                  ))}
+                </section>
+
+                <section id="iris" className="contentBand">
+                  <div>
+                    <p className="eyebrow">IRIS / Laravel</p>
+                    <h2>Repository content decides the site.</h2>
+                  </div>
+                  <ul>
+                    <li>社員登録 samples stay the main direction.</li>
+                    <li>User search and barcode/API files are represented as app functions.</li>
+                    <li>Firebase is separate and used for live status only.</li>
+                  </ul>
+                </section>
+
+                <footer>
+                  <span>{site.name}</span>
+                  <span>Vercel + Next.js + Firebase server-test-ef8cb</span>
+                </footer>
+              </main>
+            );
+          }
+          EOF
+
+          perl -0pi -e 's/\.discordButton/\.serviceButton/g; s/discordButton/serviceButton/g' src/app/globals.css
+          perl -0pi -e 's/The Isle Evrima Asia Community/Firebase connected Server-test/g' src/app/globals.css || true
+
+      - name: Commit restored project
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Restore Server-test style and Firebase movement"
+            git push
+          fi
