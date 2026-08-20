@@ -101,6 +101,17 @@ function readStoredAccount(): Account | null {
   }
 }
 
+function getFirebaseAuthStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : "Firebase auth error";
+  if (message.includes("auth/configuration-not-found")) {
+    return "Firebase Authentication is not enabled. Enable Anonymous sign-in in Firebase Console.";
+  }
+  if (message.includes("auth/operation-not-allowed")) {
+    return "Anonymous sign-in is disabled in Firebase Authentication.";
+  }
+  return message;
+}
+
 export default function ConsolePage() {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("ja");
@@ -130,8 +141,12 @@ export default function ConsolePage() {
         setFirebaseUser(user);
         return;
       }
-      const credential = await signInAnonymously(auth);
-      setFirebaseUser(credential.user);
+      try {
+        const credential = await signInAnonymously(auth);
+        setFirebaseUser(credential.user);
+      } catch (error) {
+        setStatus(getFirebaseAuthStatus(error));
+      }
     });
   }, [router]);
 
