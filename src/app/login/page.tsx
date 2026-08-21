@@ -1,10 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { signInAnonymously } from "firebase/auth";
-import { BadgeCheck, Languages, LogIn, Moon, ShieldCheck, Sun, UserPlus } from "lucide-react";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import styles from "./LoginPage.module.css";
 
@@ -14,71 +13,70 @@ type StatusKind = "info" | "error";
 
 const labels = {
   ja: {
-    id: "4桁ID",
-    name: "名前",
+    language: "日本語",
+    light: "ライトモード",
+    dark: "ダークモード",
+    title: "ログイン",
+    brand: "IRIS CONSOLE",
+    username: "ユーザー名",
+    password: "パスワード",
     login: "ログイン",
     create: "アカウント作成",
-    title: "IRIS Console",
-    subtitle: "Server-test 管理コンソール",
-    eyebrow: "SECURE OPERATIONS",
-    heroTitle: "作業データ・バーコード・メモを、ひとつのコンソールに。",
-    heroText: "Firebaseでユーザーデータを保存し、Vercel上で軽く動くIRIS Consoleです。",
-    loginHint: "登録済みの4桁IDでログインします。",
-    createHint: "新しい4桁IDと名前でアカウントを作成します。",
-    idError: "4桁IDを入力してください",
-    nameError: "アカウント作成には名前が必要です",
-    missing: "このIDはまだ登録されていません。アカウント作成を選んでください。",
-    exists: "このIDはすでに登録済みです。ログインを選んでください。",
+    loginHint: "登録済みのユーザー名とパスワードでログインします。",
+    createHint: "ユーザー名とパスワードで新しいアカウントを作成します。",
+    missing: "ユーザー名とパスワードを入力してください。",
+    shortPassword: "パスワードは6文字以上にしてください。",
     loading: "接続中...",
-    ready: "Firebase ready",
-    authSetup: "Firebase Authentication がまだ有効化されていません。Firebase Console > Authentication > Sign-in method で Anonymous を有効にしてください。",
-    authDenied: "Anonymous login が無効です。Firebase Authentication の Sign-in method で Anonymous を有効にしてください。"
+    ready: "CtrlK",
+    authSetup: "Firebase Authentication の Email/Password を有効にしてください。",
+    authDenied: "Email/Password ログインが無効です。Firebase Console で有効にしてください。"
   },
   en: {
-    id: "4-digit ID",
-    name: "Name",
+    language: "English",
+    light: "Light mode",
+    dark: "Dark mode",
+    title: "Login",
+    brand: "IRIS CONSOLE",
+    username: "Username",
+    password: "Password",
     login: "Login",
     create: "Create Account",
-    title: "IRIS Console",
-    subtitle: "Server-test management console",
-    eyebrow: "SECURE OPERATIONS",
-    heroTitle: "Work data, barcodes, and memos in one console.",
-    heroText: "IRIS Console runs on Vercel and keeps user data in Firebase.",
-    loginHint: "Login with an existing 4-digit ID.",
-    createHint: "Create an account with a new 4-digit ID and name.",
-    idError: "Enter a 4-digit ID",
-    nameError: "Name is required to create an account",
-    missing: "This ID is not registered yet. Choose Create Account.",
-    exists: "This ID already exists. Choose Login.",
+    loginHint: "Login with a registered username and password.",
+    createHint: "Create a new account with username and password.",
+    missing: "Enter username and password.",
+    shortPassword: "Password must be at least 6 characters.",
     loading: "Connecting...",
-    ready: "Firebase ready",
-    authSetup: "Firebase Authentication is not enabled yet. Open Firebase Console > Authentication > Sign-in method and enable Anonymous.",
-    authDenied: "Anonymous login is disabled. Enable Anonymous in Firebase Authentication > Sign-in method."
+    ready: "CtrlK",
+    authSetup: "Enable Firebase Authentication Email/Password.",
+    authDenied: "Email/Password login is disabled in Firebase Console."
   },
   mn: {
-    id: "4 оронтой ID",
-    name: "Нэр",
+    language: "Монгол",
+    light: "Цайвар горим",
+    dark: "Харанхуй горим",
+    title: "Нэвтрэх",
+    brand: "IRIS CONSOLE",
+    username: "Хэрэглэгчийн нэр",
+    password: "Нууц үг",
     login: "Нэвтрэх",
     create: "Аккаунт үүсгэх",
-    title: "IRIS Console",
-    subtitle: "Server-test удирдлагын консол",
-    eyebrow: "SECURE OPERATIONS",
-    heroTitle: "Ажлын data, баркод, тэмдэглэл бүгд нэг console дотор.",
-    heroText: "Vercel дээр хурдан ажиллаж, хэрэглэгчийн data-г Firebase-д хадгална.",
-    loginHint: "Бүртгэлтэй 4 оронтой ID-гаар нэвтэрнэ.",
-    createHint: "Шинэ 4 оронтой ID болон нэрээр аккаунт үүсгэнэ.",
-    idError: "4 оронтой ID оруулна уу",
-    nameError: "Аккаунт үүсгэхэд нэр шаардлагатай",
-    missing: "Энэ ID бүртгэлгүй байна. Аккаунт үүсгэхийг сонгоно уу.",
-    exists: "Энэ ID аль хэдийн байна. Нэвтрэхийг сонгоно уу.",
+    loginHint: "Бүртгэлтэй нэр, нууц үгээр нэвтэрнэ.",
+    createHint: "Нэр, нууц үгээр шинэ аккаунт үүсгэнэ.",
+    missing: "Нэр болон нууц үгээ оруулна уу.",
+    shortPassword: "Нууц үг 6-аас дээш тэмдэгт байх ёстой.",
     loading: "Холбогдож байна...",
-    ready: "Firebase ready",
-    authSetup: "Firebase Authentication идэвхгүй байна. Firebase Console > Authentication > Sign-in method хэсгээс Anonymous-г асаана уу.",
-    authDenied: "Anonymous login унтраалттай байна. Firebase Authentication > Sign-in method дээр Anonymous-г enable хийнэ үү."
+    ready: "CtrlK",
+    authSetup: "Firebase Authentication Email/Password-г асаана уу.",
+    authDenied: "Email/Password login Firebase Console дээр унтраалттай байна."
   }
 };
 
 type LabelSet = typeof labels.ja;
+
+function emailForUsername(username: string) {
+  const clean = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+  return `${clean}@iris-console.local`;
+}
 
 function getFirebaseMessage(error: unknown, t: LabelSet) {
   const message = error instanceof Error ? error.message : "Firebase error";
@@ -91,42 +89,47 @@ export default function LoginPage() {
   const router = useRouter();
   const [language, setLanguage] = useState<Language>("ja");
   const [mode, setMode] = useState<Mode>("login");
-  const [dark, setDark] = useState(true);
-  const [accountId, setAccountId] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [dark, setDark] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState(labels.ja.ready);
   const [statusKind, setStatusKind] = useState<StatusKind>("info");
   const [busy, setBusy] = useState(false);
 
   const t = labels[language];
 
-  function nextLanguage() {
-    setLanguage((value) => {
-      const next = value === "ja" ? "en" : value === "en" ? "mn" : "ja";
-      setStatus(labels[next].ready);
-      setStatusKind("info");
+  useEffect(() => {
+    const savedLanguage = window.localStorage.getItem("irisLanguage") as Language | null;
+    const savedTheme = window.localStorage.getItem("irisTheme");
+    if (savedLanguage && savedLanguage in labels) setLanguage(savedLanguage);
+    if (savedTheme) setDark(savedTheme === "dark");
+  }, []);
+
+  function changeLanguage(event: React.ChangeEvent<HTMLSelectElement>) {
+    const next = event.target.value as Language;
+    setLanguage(next);
+    setStatus(labels[next].ready);
+    window.localStorage.setItem("irisLanguage", next);
+  }
+
+  function toggleTheme() {
+    setDark((value) => {
+      const next = !value;
+      window.localStorage.setItem("irisTheme", next ? "dark" : "light");
       return next;
     });
   }
 
-  function switchMode(nextMode: Mode) {
-    setMode(nextMode);
-    setStatus(labels[language].ready);
-    setStatusKind("info");
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleanId = accountId.replace(/\D/g, "").slice(0, 4);
-    const cleanName = displayName.trim();
-
-    if (cleanId.length !== 4) {
-      setStatus(t.idError);
+    const cleanUsername = username.trim();
+    if (!cleanUsername || !password) {
+      setStatus(t.missing);
       setStatusKind("error");
       return;
     }
-    if (mode === "create" && !cleanName) {
-      setStatus(t.nameError);
+    if (password.length < 6) {
+      setStatus(t.shortPassword);
       setStatusKind("error");
       return;
     }
@@ -136,39 +139,28 @@ export default function LoginPage() {
     setStatusKind("info");
 
     try {
-      const credential = await signInAnonymously(auth);
-      const accountRef = doc(db, "irisAccounts", cleanId);
-      const accountSnapshot = await getDoc(accountRef);
+      const email = emailForUsername(cleanUsername);
+      const credential = mode === "login"
+        ? await signInWithEmailAndPassword(auth, email, password)
+        : await createUserWithEmailAndPassword(auth, email, password);
 
-      if (mode === "login") {
-        if (!accountSnapshot.exists()) {
-          setStatus(t.missing);
-          setStatusKind("error");
-          setBusy(false);
-          return;
-        }
-
-        const data = accountSnapshot.data();
-        const name = typeof data.displayName === "string" ? data.displayName : cleanId;
-        window.localStorage.setItem("irisAccount", JSON.stringify({ id: cleanId, displayName: name }));
-        router.replace("/console");
-        return;
+      if (mode === "create") {
+        await updateProfile(credential.user, { displayName: cleanUsername });
+        await setDoc(doc(db, "irisUsers", credential.user.uid), {
+          username: cleanUsername,
+          email,
+          role: "user",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } else {
+        await setDoc(doc(db, "irisUsers", credential.user.uid), {
+          username: credential.user.displayName || cleanUsername,
+          email,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
       }
 
-      if (accountSnapshot.exists()) {
-        setStatus(t.exists);
-        setStatusKind("error");
-        setBusy(false);
-        return;
-      }
-
-      await setDoc(accountRef, {
-        displayName: cleanName,
-        authUid: credential.user.uid,
-        updatedAt: serverTimestamp()
-      });
-
-      window.localStorage.setItem("irisAccount", JSON.stringify({ id: cleanId, displayName: cleanName }));
       router.replace("/console");
     } catch (error) {
       setStatus(getFirebaseMessage(error, t));
@@ -179,66 +171,34 @@ export default function LoginPage() {
 
   return (
     <main className={dark ? `${styles.page} ${styles.dark}` : styles.page}>
-      <section className={styles.shell}>
-        <header className={styles.header}>
-          <div>
-            <p className={styles.brand}>SERVER-TEST</p>
-            <h1>{t.title}</h1>
-          </div>
-          <div className={styles.tools}>
-            <button type="button" onClick={nextLanguage} title="language"><Languages size={21} />{language.toUpperCase()}</button>
-            <button type="button" onClick={() => setDark((value) => !value)} title="theme">{dark ? <Sun size={21} /> : <Moon size={21} />}</button>
-          </div>
-        </header>
+      <div className={styles.toolbar}>
+        <select value={language} onChange={changeLanguage} aria-label="language">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+          <option value="mn">Монгол</option>
+        </select>
+        <button type="button" onClick={toggleTheme}>{dark ? t.light : t.dark}</button>
+      </div>
 
-        <div className={styles.stage}>
-          <section className={styles.heroPanel}>
-            <p className={styles.eyebrow}><span />{t.eyebrow}</p>
-            <h2>{t.heroTitle}</h2>
-            <p>{t.heroText}</p>
-            <div className={styles.metrics}>
-              <span><BadgeCheck size={20} />Firebase</span>
-              <span><ShieldCheck size={20} />Vercel</span>
-              <span>4ID</span>
-            </div>
-          </section>
+      <form className={styles.card} onSubmit={handleSubmit}>
+        <div className={styles.logo} />
+        <p className={styles.brand}>{t.brand}</p>
+        <h1>{t.title}</h1>
 
-          <form className={styles.card} onSubmit={handleSubmit}>
-            <div className={styles.cardHead}>
-              <div className={styles.iconBox}>{mode === "login" ? <LogIn size={28} /> : <UserPlus size={28} />}</div>
-              <div>
-                <p>{t.subtitle}</p>
-                <h2>{mode === "login" ? t.login : t.create}</h2>
-              </div>
-            </div>
+        <label>
+          {t.username}
+          <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" autoFocus />
+        </label>
+        <label>
+          {t.password}
+          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} />
+        </label>
 
-            <div className={styles.modeTabs}>
-              <button className={mode === "login" ? styles.activeTab : styles.modeTab} type="button" onClick={() => switchMode("login")}><LogIn size={17} />{t.login}</button>
-              <button className={mode === "create" ? styles.activeTab : styles.modeTab} type="button" onClick={() => switchMode("create")}><UserPlus size={17} />{t.create}</button>
-            </div>
-
-            <label>
-              {t.id}
-              <input value={accountId} inputMode="numeric" maxLength={4} onChange={(event) => setAccountId(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0001" autoFocus />
-            </label>
-
-            {mode === "create" && (
-              <label>
-                {t.name}
-                <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Taku" />
-              </label>
-            )}
-
-            <button className={styles.primary} disabled={busy} type="submit">
-              {mode === "login" ? <LogIn size={22} /> : <UserPlus size={22} />}
-              {mode === "login" ? t.login : t.create}
-            </button>
-            <p className={styles.hint}>{mode === "login" ? t.loginHint : t.createHint}</p>
-            <p className={statusKind === "error" ? styles.errorStatus : styles.status}><span />{status}</p>
-          </form>
-        </div>
-        <footer className={styles.footer}>© 2026 Server-test · IRIS Console</footer>
-      </section>
+        <button className={styles.primary} disabled={busy} type="submit">{mode === "login" ? t.login : t.create}</button>
+        <button className={styles.secondary} disabled={busy} type="button" onClick={() => setMode(mode === "login" ? "create" : "login")}>{mode === "login" ? t.create : t.login}</button>
+        <p className={styles.hint}>{mode === "login" ? t.loginHint : t.createHint}</p>
+        <p className={statusKind === "error" ? styles.errorStatus : styles.status}>{status}</p>
+      </form>
     </main>
   );
 }
