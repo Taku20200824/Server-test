@@ -2,104 +2,116 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function signedIn() {
       return request.auth != null;
     }
 
-    function isFourDigitAccount(accountId) {
-      return accountId.matches('^[0-9]{4}$');
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/irisUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/irisUsers/$(request.auth.uid)).data.role == 'admin';
     }
 
-    match /irisAccounts/{accountId} {
-      allow read: if signedIn();
-      allow create, update: if signedIn()
-        && isFourDigitAccount(accountId)
-        && request.resource.data.keys().hasOnly(['displayName', 'authUid', 'updatedAt'])
+    function isOwner() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------
+    // アカウント（表示名・権限）
+    //   role の昇格はコンソールからはできない。管理者にするときは
+    //   Firebase Console で role を 'admin' に書き換える。
+    // ---------------------------------------------------------
+    match /irisUsers/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['username', 'displayName', 'role', 'updatedAt'])
+        && request.resource.data.username is string
+        && request.resource.data.username.matches('^[a-z0-9._-]{3,32}$')
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
         && request.resource.data.displayName.size() <= 80
-        && request.resource.data.authUid == request.auth.uid;
+        && request.resource.data.role == 'member';
+
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['username', 'displayName', 'role', 'updatedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.username == resource.data.username
+        && request.resource.data.role == resource.data.role;
+
       allow delete: if false;
     }
 
+    // ---------------------------------------------------------
+    // バーコードレコード（共有台帳）
+    //   閲覧はログイン済みユーザー全員。
+    //   変更・削除は登録者本人か管理者だけ。
+    // ---------------------------------------------------------
     match /irisRecords/{recordId} {
+      function validRecord() {
+        return request.resource.data.keys().hasOnly(
+            ['no', 'barcode', 'name', 'kanji', 'katakana', 'address', 'ownerUid', 'ownerName', 'addedDateTime', 'updatedAt'])
+          && request.resource.data.no is int
+          && request.resource.data.no > 0
+          && request.resource.data.barcode is string
+          && request.resource.data.barcode.matches('^[0-9]{1,20}$')
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 160
+          && request.resource.data.kanji is string
+          && request.resource.data.kanji.size() <= 160
+          && request.resource.data.katakana is string
+          && request.resource.data.katakana.size() <= 160
+          && request.resource.data.address is string
+          && request.resource.data.address.size() <= 300
+          && request.resource.data.ownerName is string
+          && request.resource.data.ownerName.size() <= 80
+          && request.resource.data.addedDateTime is string
+          && request.resource.data.addedDateTime.size() <= 40;
+      }
+
       allow read: if signedIn();
-      allow create, update: if signedIn()
-        && request.resource.data.keys().hasOnly(['barcode', 'name', 'memo', 'ownerId', 'authUid', 'updatedAt'])
-        && request.resource.data.barcode is string
-        && request.resource.data.barcode.size() > 0
-        && request.resource.data.barcode.size() <= 80
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 160
-        && request.resource.data.memo is string
-        && request.resource.data.memo.size() <= 1000
-        && request.resource.data.ownerId.matches('^[0-9]{4}$')
-        && request.resource.data.authUid == request.auth.uid;
-      allow delete: if signedIn()
-        && resource.data.keys().hasAny(['authUid'])
-        && resource.data.authUid == request.auth.uid;
+
+      allow create: if signedIn()
+        && validRecord()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if (isOwner() || isAdmin())
+        && validRecord()
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+
+      allow delete: if isOwner() || isAdmin();
     }
 
-    match /irisNotes/{accountId} {
-      allow read: if signedIn();
-      allow create, update: if signedIn()
-        && isFourDigitAccount(accountId)
-        && request.resource.data.keys().hasOnly(['body', 'displayName', 'authUid', 'updatedAt'])
-        && request.resource.data.body is string
-        && request.resource.data.body.size() <= 3000
-        && request.resource.data.authUid == request.auth.uid;
-      allow delete: if false;
-    }
+    // ---------------------------------------------------------
+    // 付箋メモ（本人だけが読み書きできる）
+    // ---------------------------------------------------------
+    match /irisNotes/{noteId} {
+      function validNote() {
+        return request.resource.data.keys().hasOnly(['body', 'color', 'x', 'y', 'ownerUid', 'updatedAt'])
+          && request.resource.data.body is string
+          && request.resource.data.body.size() <= 3000
+          && request.resource.data.color in ['lemon', 'mint', 'rose', 'iris']
+          && request.resource.data.x is number
+          && request.resource.data.y is number;
+      }
 
-    match /announcements/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
+      allow read: if isOwner();
 
-    match /events/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
+      allow create: if signedIn()
+        && validNote()
+        && request.resource.data.ownerUid == request.auth.uid;
 
-    match /features/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
+      allow update: if isOwner()
+        && validNote()
+        && request.resource.data.ownerUid == resource.data.ownerUid;
 
-    match /gallery/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
-    match /mapMarkers/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
-    match /rules/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
-    match /scores/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
-    match /serverStatus/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
-    match /siteText/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
-    }
-
-    match /staff/{documentId} {
-      allow read: if signedIn();
-      allow write: if false;
+      allow delete: if isOwner();
     }
   }
 }

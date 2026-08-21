@@ -2,203 +2,167 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  updateProfile
+} from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { auth, db } from "@/lib/firebase";
-import styles from "./LoginPage.module.css";
+import { isValidUsername, normalizeUsername, usernameToEmail } from "@/lib/account";
+import { LabelSet, labels } from "@/lib/i18n";
 
-type Language = "ja" | "en" | "mn";
-type Mode = "login" | "create";
-type StatusKind = "info" | "error";
+type Mode = "login" | "signup";
 
-const labels = {
-  ja: {
-    language: "日本語",
-    light: "ライトモード",
-    dark: "ダークモード",
-    title: "ログイン",
-    brand: "IRIS CONSOLE",
-    username: "ユーザー名",
-    password: "パスワード",
-    login: "ログイン",
-    create: "アカウント作成",
-    loginHint: "登録済みのユーザー名とパスワードでログインします。",
-    createHint: "ユーザー名とパスワードで新しいアカウントを作成します。",
-    missing: "ユーザー名とパスワードを入力してください。",
-    shortPassword: "パスワードは6文字以上にしてください。",
-    loading: "接続中...",
-    ready: "CtrlK",
-    authSetup: "Firebase Authentication の Email/Password を有効にしてください。",
-    authDenied: "Email/Password ログインが無効です。Firebase Console で有効にしてください。"
-  },
-  en: {
-    language: "English",
-    light: "Light mode",
-    dark: "Dark mode",
-    title: "Login",
-    brand: "IRIS CONSOLE",
-    username: "Username",
-    password: "Password",
-    login: "Login",
-    create: "Create Account",
-    loginHint: "Login with a registered username and password.",
-    createHint: "Create a new account with username and password.",
-    missing: "Enter username and password.",
-    shortPassword: "Password must be at least 6 characters.",
-    loading: "Connecting...",
-    ready: "CtrlK",
-    authSetup: "Enable Firebase Authentication Email/Password.",
-    authDenied: "Email/Password login is disabled in Firebase Console."
-  },
-  mn: {
-    language: "Монгол",
-    light: "Цайвар горим",
-    dark: "Харанхуй горим",
-    title: "Нэвтрэх",
-    brand: "IRIS CONSOLE",
-    username: "Хэрэглэгчийн нэр",
-    password: "Нууц үг",
-    login: "Нэвтрэх",
-    create: "Аккаунт үүсгэх",
-    loginHint: "Бүртгэлтэй нэр, нууц үгээр нэвтэрнэ.",
-    createHint: "Нэр, нууц үгээр шинэ аккаунт үүсгэнэ.",
-    missing: "Нэр болон нууц үгээ оруулна уу.",
-    shortPassword: "Нууц үг 6-аас дээш тэмдэгт байх ёстой.",
-    loading: "Холбогдож байна...",
-    ready: "CtrlK",
-    authSetup: "Firebase Authentication Email/Password-г асаана уу.",
-    authDenied: "Email/Password login Firebase Console дээр унтраалттай байна."
+function authMessage(error: unknown, t: LabelSet) {
+  const code = typeof error === "object" && error && "code" in error ? String((error as { code: unknown }).code) : "";
+
+  if (code.includes("configuration-not-found") || code.includes("operation-not-allowed")) return t.authSetup;
+  if (code.includes("email-already-in-use")) return t.userExists;
+  if (code.includes("weak-password")) return t.weakPassword;
+  if (
+    code.includes("invalid-credential") ||
+    code.includes("wrong-password") ||
+    code.includes("user-not-found") ||
+    code.includes("invalid-email")
+  ) {
+    return t.wrongCredentials;
   }
-};
-
-type LabelSet = typeof labels.ja;
-
-function emailForUsername(username: string) {
-  const clean = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
-  return `${clean}@iris-console.local`;
-}
-
-function getFirebaseMessage(error: unknown, t: LabelSet) {
-  const message = error instanceof Error ? error.message : "Firebase error";
-  if (message.includes("auth/configuration-not-found")) return t.authSetup;
-  if (message.includes("auth/operation-not-allowed")) return t.authDenied;
-  return message;
+  return error instanceof Error ? error.message : "Firebase error";
 }
 
 export default function LoginPage() {
   const router = useRouter();
-  const [language, setLanguage] = useState<Language>("ja");
+  const [language, setLanguage] = useLanguage();
+  const [dark, toggleTheme] = useTheme();
   const [mode, setMode] = useState<Mode>("login");
-  const [dark, setDark] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState(labels.ja.ready);
-  const [statusKind, setStatusKind] = useState<StatusKind>("info");
+  const [displayName, setDisplayName] = useState("");
+  const [note, setNote] = useState("");
+  const [noteKind, setNoteKind] = useState<"info" | "error">("info");
   const [busy, setBusy] = useState(false);
 
   const t = labels[language];
 
   useEffect(() => {
-    const savedLanguage = window.localStorage.getItem("irisLanguage") as Language | null;
-    const savedTheme = window.localStorage.getItem("irisTheme");
-    if (savedLanguage && savedLanguage in labels) setLanguage(savedLanguage);
-    if (savedTheme) setDark(savedTheme === "dark");
-  }, []);
-
-  function changeLanguage(event: React.ChangeEvent<HTMLSelectElement>) {
-    const next = event.target.value as Language;
-    setLanguage(next);
-    setStatus(labels[next].ready);
-    window.localStorage.setItem("irisLanguage", next);
-  }
-
-  function toggleTheme() {
-    setDark((value) => {
-      const next = !value;
-      window.localStorage.setItem("irisTheme", next ? "dark" : "light");
-      return next;
+    return onAuthStateChanged(auth, (user) => {
+      if (user) router.replace("/console");
     });
+  }, [router]);
+
+  function fail(message: string) {
+    setNote(message);
+    setNoteKind("error");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleanUsername = username.trim();
-    if (!cleanUsername || !password) {
-      setStatus(t.missing);
-      setStatusKind("error");
-      return;
-    }
-    if (password.length < 6) {
-      setStatus(t.shortPassword);
-      setStatusKind("error");
-      return;
-    }
+
+    const cleanUsername = normalizeUsername(username);
+    const cleanDisplayName = displayName.trim();
+
+    if (!isValidUsername(cleanUsername)) return fail(t.needUsername);
+    if (password.length < 6) return fail(t.needPassword);
+    if (mode === "signup" && !cleanDisplayName) return fail(t.needDisplayName);
 
     setBusy(true);
-    setStatus(t.loading);
-    setStatusKind("info");
+    setNote(t.connecting);
+    setNoteKind("info");
 
     try {
-      const email = emailForUsername(cleanUsername);
-      const credential = mode === "login"
-        ? await signInWithEmailAndPassword(auth, email, password)
-        : await createUserWithEmailAndPassword(auth, email, password);
-
-      if (mode === "create") {
-        await updateProfile(credential.user, { displayName: cleanUsername });
-        await setDoc(doc(db, "irisUsers", credential.user.uid), {
-          username: cleanUsername,
-          email,
-          role: "user",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      } else {
-        await setDoc(doc(db, "irisUsers", credential.user.uid), {
-          username: credential.user.displayName || cleanUsername,
-          email,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+      if (mode === "login") {
+        await signInWithEmailAndPassword(auth, usernameToEmail(cleanUsername), password);
+        router.replace("/console");
+        return;
       }
 
+      const credential = await createUserWithEmailAndPassword(auth, usernameToEmail(cleanUsername), password);
+      await updateProfile(credential.user, { displayName: cleanDisplayName });
+      await setDoc(doc(db, "irisUsers", credential.user.uid), {
+        username: cleanUsername,
+        displayName: cleanDisplayName,
+        role: "member",
+        updatedAt: serverTimestamp()
+      });
       router.replace("/console");
     } catch (error) {
-      setStatus(getFirebaseMessage(error, t));
-      setStatusKind("error");
+      fail(authMessage(error, t));
       setBusy(false);
     }
   }
 
   return (
-    <main className={dark ? `${styles.page} ${styles.dark}` : styles.page}>
-      <div className={styles.toolbar}>
-        <select value={language} onChange={changeLanguage} aria-label="language">
-          <option value="ja">日本語</option>
-          <option value="en">English</option>
-          <option value="mn">Монгол</option>
-        </select>
-        <button type="button" onClick={toggleTheme}>{dark ? t.light : t.dark}</button>
+    <main className="login-shell">
+      <div className="login-controls">
+        <LanguageSelect language={language} onChange={setLanguage} />
+        <ThemeToggle dark={dark} onToggle={toggleTheme} t={t} />
       </div>
 
-      <form className={styles.card} onSubmit={handleSubmit}>
-        <div className={styles.logo} />
-        <p className={styles.brand}>{t.brand}</p>
-        <h1>{t.title}</h1>
+      <section className="login-card">
+        <BrandMark />
+        <p className="eyebrow">{t.brand}</p>
+        <h1 className="gradient-text">{mode === "login" ? t.loginTitle : t.signupTitle}</h1>
 
-        <label>
-          {t.username}
-          <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" autoFocus />
-        </label>
-        <label>
-          {t.password}
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} />
-        </label>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label>
+            {t.username}
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              autoFocus
+            />
+          </label>
 
-        <button className={styles.primary} disabled={busy} type="submit">{mode === "login" ? t.login : t.create}</button>
-        <button className={styles.secondary} disabled={busy} type="button" onClick={() => setMode(mode === "login" ? "create" : "login")}>{mode === "login" ? t.create : t.login}</button>
-        <p className={styles.hint}>{mode === "login" ? t.loginHint : t.createHint}</p>
-        <p className={statusKind === "error" ? styles.errorStatus : styles.status}>{status}</p>
-      </form>
+          <label>
+            {t.password}
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+            />
+          </label>
+
+          {mode === "signup" && (
+            <label>
+              {t.displayName}
+              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+            </label>
+          )}
+
+          <button className="button primary" type="submit" disabled={busy}>
+            {mode === "login" ? t.loginAction : t.signupAction}
+          </button>
+
+          <button
+            className="button"
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setMode(mode === "login" ? "signup" : "login");
+              setNote("");
+              setNoteKind("info");
+            }}
+          >
+            {mode === "login" ? t.signupAction : t.backToLogin}
+          </button>
+
+          <p className="login-note" data-kind={noteKind}>
+            {note || (mode === "login" ? t.loginHint : t.signupHint)}
+          </p>
+        </form>
+      </section>
+
+      <div className="cmdk-hint" aria-hidden>
+        <span>Ctrl</span>
+        <span>K</span>
+      </div>
     </main>
   );
 }

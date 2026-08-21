@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   addDoc,
@@ -13,209 +21,273 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { Download, LogOut, Plus, ScanLine, Search, Trash2 } from "lucide-react";
+import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { auth, db } from "@/lib/firebase";
-import styles from "./ConsolePage.module.css";
+import { Account, Role, emailToUsername, isRole } from "@/lib/account";
+import { labels } from "@/lib/i18n";
 
-type Language = "ja" | "en" | "mn";
-type Profile = { username: string; role?: string };
-type NameRecord = {
+type IrisRecord = {
   id: string;
   no: number;
   barcode: string;
   name: string;
   kanji: string;
-  kana: string;
+  katakana: string;
   address: string;
+  addedDateTime: string;
   ownerUid: string;
-  ownerName: string;
-  addedAtText: string;
-};
-type StickyNote = { id: string; body: string; color: string; x: number; y: number; ownerUid: string };
-
-const labels = {
-  ja: { title: "名前マネージャー", search: "検索", register: "登録", clear: "クリア", result: "バーコード結果", recent: "5 最近のレコード", scan: "カメラスキャン", csv: "CSV", logout: "ログアウト", addNote: "+ 付箋を追加", edit: "編集", delete: "削除", admin: "管理者" },
-  en: { title: "Name Manager", search: "Search", register: "Register", clear: "Clear", result: "Barcode Results", recent: "5 Recent Records", scan: "Camera Scan", csv: "CSV", logout: "Logout", addNote: "+ Add note", edit: "Edit", delete: "Delete", admin: "Admin" },
-  mn: { title: "Нэрийн менежер", search: "Хайх", register: "Бүртгэх", clear: "Цэвэрлэх", result: "Баркод үр дүн", recent: "Сүүлийн 5 бичлэг", scan: "Камер унших", csv: "CSV", logout: "Гарах", addNote: "+ Наалт нэмэх", edit: "Засах", delete: "Устгах", admin: "Админ" }
 };
 
-const noteColors = ["#fff48f", "#a8f0d0", "#ffb6cb", "#9b95ff"];
-const emptyForm = { barcode: "", name: "", kanji: "", kana: "", address: "" };
+type NoteColor = "lemon" | "mint" | "rose" | "iris";
 
-function dateText(value: unknown) {
-  if (value && typeof value === "object" && "toDate" in value && typeof value.toDate === "function") {
-    const date = value.toDate() as Date;
-    return date.toLocaleString("ja-JP", { hour12: false });
-  }
-  return "";
+type StickyNote = {
+  id: string;
+  body: string;
+  color: NoteColor;
+  x: number;
+  y: number;
+};
+
+const NOTE_COLORS: NoteColor[] = ["lemon", "mint", "rose", "iris"];
+
+const emptyForm = { name: "", kanji: "", katakana: "", address: "" };
+
+function isNoteColor(value: unknown): value is NoteColor {
+  return typeof value === "string" && (NOTE_COLORS as string[]).includes(value);
 }
 
-function csvEscape(value: string | number) {
-  return `"${String(value).replaceAll('"', '""')}"`;
+function pad6(value: number) {
+  return String(value).padStart(6, "0");
+}
+
+function nowStamp() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(
+    d.getSeconds()
+  )}`;
+}
+
+function csvCell(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+function toRecord(id: string, data: Record<string, unknown>): IrisRecord {
+  const str = (key: string) => (typeof data[key] === "string" ? (data[key] as string) : "");
+  return {
+    id,
+    no: typeof data.no === "number" ? data.no : Number(str("barcode")) || 0,
+    barcode: str("barcode"),
+    name: str("name"),
+    kanji: str("kanji"),
+    katakana: str("katakana"),
+    address: str("address"),
+    addedDateTime: str("addedDateTime"),
+    ownerUid: str("ownerUid")
+  };
 }
 
 export default function ConsolePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [language, setLanguage] = useState<Language>("ja");
-  const [dark, setDark] = useState(false);
-  const [records, setRecords] = useState<NameRecord[]>([]);
+  const [language, setLanguage] = useLanguage();
+  const [dark, toggleTheme] = useTheme();
+
+  const [account, setAccount] = useState<Account | null>(null);
+  const [records, setRecords] = useState<IrisRecord[]>([]);
   const [notes, setNotes] = useState<StickyNote[]>([]);
-  const [barcodeInput, setBarcodeInput] = useState("");
+
+  const [barcode, setBarcode] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
   const [status, setStatus] = useState("");
+  const [statusKind, setStatusKind] = useState<"info" | "error">("info");
+  const [busy, setBusy] = useState(false);
+
+  const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const t = labels[language];
-  const isAdmin = profile?.role === "admin";
 
-  useEffect(() => {
-    const savedLanguage = window.localStorage.getItem("irisLanguage") as Language | null;
-    const savedTheme = window.localStorage.getItem("irisTheme");
-    if (savedLanguage && savedLanguage in labels) setLanguage(savedLanguage);
-    if (savedTheme) setDark(savedTheme === "dark");
+  const say = useCallback((message: string, kind: "info" | "error" = "info") => {
+    setStatus(message);
+    setStatusKind(kind);
   }, []);
 
-  useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
-    if (!nextUser) {
-      router.replace("/login");
-      return;
-    }
-    setUser(nextUser);
-    const profileRef = doc(db, "irisUsers", nextUser.uid);
-    const snapshot = await getDoc(profileRef);
-    const data = snapshot.data();
-    const username = typeof data?.username === "string" ? data.username : nextUser.displayName || "user";
-    const role = typeof data?.role === "string" ? data.role : "user";
-    setProfile({ username, role });
-    await setDoc(profileRef, { username, email: nextUser.email, role, updatedAt: serverTimestamp() }, { merge: true });
-  }), [router]);
+  /* ---------- auth ---------- */
 
   useEffect(() => {
-    if (!user) return;
-    const recordsQuery = query(collection(db, "irisRecords"), orderBy("addedAt", "desc"));
-    return onSnapshot(recordsQuery, (snapshot) => {
-      setRecords(snapshot.docs.map((item) => {
-        const data = item.data();
-        return {
-          id: item.id,
-          no: typeof data.no === "number" ? data.no : 0,
-          barcode: typeof data.barcode === "string" ? data.barcode : "",
-          name: typeof data.name === "string" ? data.name : "",
-          kanji: typeof data.kanji === "string" ? data.kanji : "",
-          kana: typeof data.kana === "string" ? data.kana : "",
-          address: typeof data.address === "string" ? data.address : "",
-          ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
-          ownerName: typeof data.ownerName === "string" ? data.ownerName : "",
-          addedAtText: dateText(data.addedAt)
-        };
-      }));
-    }, (error) => setStatus(error.message));
-  }, [user]);
+    return onAuthStateChanged(auth, async (user: User | null) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
 
-  useEffect(() => {
-    if (!user) return;
-    const notesQuery = query(collection(db, "irisStickyNotes"), orderBy("updatedAt", "desc"));
-    return onSnapshot(notesQuery, (snapshot) => {
-      setNotes(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as StickyNote));
-    }, (error) => setStatus(error.message));
-  }, [user]);
+      let displayName = user.displayName || emailToUsername(user.email);
+      let role: Role = "member";
 
-  const filteredRecords = useMemo(() => {
-    const keyword = barcodeInput.trim().toLowerCase();
-    const source = keyword ? records.filter((record) => [record.barcode, record.name, record.kanji, record.kana, record.address].join(" ").toLowerCase().includes(keyword)) : records;
-    return source.slice(0, 5);
-  }, [records, barcodeInput]);
+      try {
+        const profile = await getDoc(doc(db, "irisUsers", user.uid));
+        const data = profile.data();
+        if (data) {
+          if (typeof data.displayName === "string" && data.displayName) displayName = data.displayName;
+          if (isRole(data.role)) role = data.role;
+        }
+      } catch {
+        /* プロフィールが読めなくてもコンソールは表示する */
+      }
 
-  function changeLanguage(value: Language) {
-    setLanguage(value);
-    window.localStorage.setItem("irisLanguage", value);
-  }
-
-  function toggleTheme() {
-    setDark((value) => {
-      const next = !value;
-      window.localStorage.setItem("irisTheme", next ? "dark" : "light");
-      return next;
+      setAccount({ uid: user.uid, username: emailToUsername(user.email), displayName, role });
     });
+  }, [router]);
+
+  /* ---------- records ---------- */
+
+  useEffect(() => {
+    if (!account) return;
+    return onSnapshot(
+      query(collection(db, "irisRecords"), orderBy("no", "asc")),
+      (snapshot) => setRecords(snapshot.docs.map((item) => toRecord(item.id, item.data()))),
+      (error) => say(error.message, "error")
+    );
+  }, [account, say]);
+
+  /* ---------- sticky notes ---------- */
+
+  useEffect(() => {
+    if (!account) return;
+    return onSnapshot(
+      query(collection(db, "irisNotes"), where("ownerUid", "==", account.uid)),
+      (snapshot) => {
+        setNotes(
+          snapshot.docs.map((item) => {
+            const data = item.data();
+            return {
+              id: item.id,
+              body: typeof data.body === "string" ? data.body : "",
+              color: isNoteColor(data.color) ? data.color : "lemon",
+              x: typeof data.x === "number" ? data.x : 40,
+              y: typeof data.y === "number" ? data.y : 140
+            };
+          })
+        );
+      },
+      (error) => say(error.message, "error")
+    );
+  }, [account, say]);
+
+  useEffect(() => {
+    const timers = saveTimers.current;
+    return () => Object.values(timers).forEach(clearTimeout);
+  }, []);
+
+  /* ---------- derived ---------- */
+
+  const filtered = useMemo(() => {
+    const keyword = barcode.trim().toLowerCase();
+    if (!keyword) return records;
+    return records.filter((record) =>
+      [record.barcode, record.name, record.kanji, record.katakana, record.address]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword)
+    );
+  }, [records, barcode]);
+
+  /* ---------- record actions ---------- */
+
+  function resetForm() {
+    setForm(emptyForm);
+    setEditingId(null);
+    setFormOpen(false);
   }
 
-  async function handleRegister(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!user || !profile) return;
-    const cleanBarcode = (form.barcode || barcodeInput).trim();
-    if (!cleanBarcode) {
-      setStatus("Barcode required");
+  function handleSearch() {
+    if (!barcode.trim()) {
+      say(`${records.length} ${t.recentRecords}`);
       return;
     }
+    say(filtered.length === 0 ? t.notFound : `${filtered.length} ${t.matched}`, filtered.length === 0 ? "error" : "info");
+  }
+
+  function handleClear() {
+    setBarcode("");
+    resetForm();
+    say(t.cleared);
+  }
+
+  async function handleRegister(event?: FormEvent) {
+    event?.preventDefault();
+    if (!account) return;
+
+    const cleanBarcode = barcode.replace(/\D/g, "");
+
+    if (!formOpen) {
+      if (!cleanBarcode) return say(t.needBarcodeName, "error");
+      setFormOpen(true);
+      return;
+    }
+
+    if (!cleanBarcode || !form.name.trim()) return say(t.needBarcodeName, "error");
+
     const payload = {
-      no: Number(cleanBarcode.replace(/\D/g, "")) || records.length + 1,
-      barcode: cleanBarcode,
-      name: form.name.trim() || profile.username,
+      no: Number(cleanBarcode),
+      barcode: pad6(Number(cleanBarcode)),
+      name: form.name.trim(),
       kanji: form.kanji.trim(),
-      kana: form.kana.trim(),
+      katakana: form.katakana.trim(),
       address: form.address.trim(),
-      ownerUid: user.uid,
-      ownerName: profile.username,
-      addedAt: serverTimestamp(),
+      ownerUid: account.uid,
+      ownerName: account.displayName,
+      addedDateTime: nowStamp(),
       updatedAt: serverTimestamp()
     };
-    if (editingId) {
-      await updateDoc(doc(db, "irisRecords", editingId), payload);
-    } else {
-      await addDoc(collection(db, "irisRecords"), payload);
+
+    setBusy(true);
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "irisRecords", editingId), payload);
+        say(t.updated);
+      } else {
+        await addDoc(collection(db, "irisRecords"), payload);
+        say(t.registered);
+      }
+      setBarcode("");
+      resetForm();
+    } catch (error) {
+      say(error instanceof Error ? error.message : "Firestore error", "error");
+    } finally {
+      setBusy(false);
     }
-    setForm(emptyForm);
-    setEditingId(null);
-    setStatus("Saved");
   }
 
-  function editRecord(record: NameRecord) {
+  function startEdit(record: IrisRecord) {
     setEditingId(record.id);
-    setBarcodeInput(record.barcode);
-    setForm({ barcode: record.barcode, name: record.name, kanji: record.kanji, kana: record.kana, address: record.address });
+    setBarcode(record.barcode);
+    setForm({
+      name: record.name,
+      kanji: record.kanji,
+      katakana: record.katakana,
+      address: record.address
+    });
+    setFormOpen(true);
   }
 
-  async function removeRecord(record: NameRecord) {
-    if (!user || (!isAdmin && record.ownerUid !== user.uid)) return;
-    await deleteDoc(doc(db, "irisRecords", record.id));
-  }
-
-  function clearForm() {
-    setBarcodeInput("");
-    setForm(emptyForm);
-    setEditingId(null);
-  }
-
-  async function addNote() {
-    if (!user) return;
-    await addDoc(collection(db, "irisStickyNotes"), { body: "", color: noteColors[0], x: 60, y: 520, ownerUid: user.uid, updatedAt: serverTimestamp() });
-  }
-
-  async function updateNote(note: StickyNote, patch: Partial<StickyNote>) {
-    if (!user || (!isAdmin && note.ownerUid !== user.uid)) return;
-    await updateDoc(doc(db, "irisStickyNotes", note.id), { ...patch, updatedAt: serverTimestamp() });
-  }
-
-  async function deleteNote(note: StickyNote) {
-    if (!user || (!isAdmin && note.ownerUid !== user.uid)) return;
-    await deleteDoc(doc(db, "irisStickyNotes", note.id));
-  }
-
-  function downloadCsv() {
-    const header = ["NO", "バーコード", "名前", "漢字", "カタカナ", "住所", "追加日時"];
-    const rows = records.map((record) => [record.no, record.barcode, record.name, record.kanji, record.kana, record.address, record.addedAtText].map(csvEscape).join(","));
-    const blob = new Blob(["\uFEFF" + [header.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "iris-records.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+  async function removeRecord(record: IrisRecord) {
+    if (!window.confirm(t.confirmDelete)) return;
+    try {
+      await deleteDoc(doc(db, "irisRecords", record.id));
+      if (editingId === record.id) resetForm();
+      say(t.deleted);
+    } catch (error) {
+      say(error instanceof Error ? error.message : "Firestore error", "error");
+    }
   }
 
   async function handleLogout() {
@@ -223,72 +295,278 @@ export default function ConsolePage() {
     router.replace("/login");
   }
 
-  if (!user || !profile) return <main className={styles.loading}>Loading...</main>;
+  function downloadCsv() {
+    const header = [t.colNo, t.colBarcode, t.colName, t.colKanji, t.colKatakana, t.colAddress, t.colAddedAt];
+    const rows = filtered.map((record) =>
+      [
+        String(record.no),
+        record.barcode,
+        record.name,
+        record.kanji,
+        record.katakana,
+        record.address,
+        record.addedDateTime
+      ]
+        .map(csvCell)
+        .join(",")
+    );
+    const csv = "﻿" + [header.map(csvCell).join(","), ...rows].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "iris-records.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /* ---------- note actions ---------- */
+
+  async function addNote() {
+    if (!account) return;
+    const index = notes.length;
+    await addDoc(collection(db, "irisNotes"), {
+      body: "",
+      color: NOTE_COLORS[index % NOTE_COLORS.length],
+      x: 32 + (index % 3) * 26,
+      y: 160 + (index % 4) * 42,
+      ownerUid: account.uid,
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  function queueNoteSave(id: string, patch: Partial<StickyNote>) {
+    setNotes((current) => current.map((note) => (note.id === id ? { ...note, ...patch } : note)));
+    clearTimeout(saveTimers.current[id]);
+    saveTimers.current[id] = setTimeout(() => {
+      setDoc(doc(db, "irisNotes", id), { ...patch, updatedAt: serverTimestamp() }, { merge: true }).catch((error) =>
+        say(error instanceof Error ? error.message : "Firestore error", "error")
+      );
+    }, 600);
+  }
+
+  function beginDrag(event: ReactPointerEvent<HTMLDivElement>, note: StickyNote) {
+    dragRef.current = { id: note.id, dx: event.clientX - note.x, dy: event.clientY - note.y };
+    setDraggingId(note.id);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const x = Math.max(8, Math.min(window.innerWidth - 232, event.clientX - drag.dx));
+    const y = Math.max(8, Math.min(window.innerHeight - 150, event.clientY - drag.dy));
+    setNotes((current) => current.map((note) => (note.id === drag.id ? { ...note, x, y } : note)));
+  }
+
+  function endDrag() {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    setDraggingId(null);
+    if (!drag) return;
+    const note = notes.find((item) => item.id === drag.id);
+    if (note) queueNoteSave(note.id, { x: note.x, y: note.y });
+  }
+
+  async function removeNote(id: string) {
+    await deleteDoc(doc(db, "irisNotes", id));
+  }
+
+  /* ---------- render ---------- */
+
+  if (!account) {
+    return (
+      <main className="app-shell">
+        <p className="status-line">{t.connecting}</p>
+      </main>
+    );
+  }
 
   return (
-    <main className={dark ? `${styles.page} ${styles.dark}` : styles.page}>
-      <header className={styles.header}>
-        <div className={styles.logo} />
-        <div>
-          <p>IRIS CONSOLE</p>
-          <h1>{t.title}</h1>
-        </div>
-      </header>
+    <>
+      <main className="app-shell">
+        <header className="app-header">
+          <div className="brand-lockup">
+            <BrandMark small />
+            <div>
+              <p className="eyebrow">{t.brand}</p>
+              <h1 className="gradient-text">{t.appName}</h1>
+            </div>
+          </div>
 
-      <nav className={styles.toolbar}>
-        <span className={styles.userPill}>{profile.username}{isAdmin && <b>{t.admin}</b>}</span>
-        <button onClick={() => changeLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")}>{language === "ja" ? "日本語" : language === "en" ? "English" : "Монгол"}</button>
-        <button onClick={toggleTheme}>{dark ? "ライトモード" : "ダークモード"}</button>
-        <button onClick={() => setStatus("Camera scan is not enabled yet.")}><ScanLine size={18} />{t.scan}</button>
-        <button onClick={downloadCsv}><Download size={18} />{t.csv}</button>
-        <button onClick={handleLogout}><LogOut size={18} />{t.logout}</button>
-      </nav>
+          <div className="header-meta">
+            <span className="user-pill">
+              <span className="user-name">{account.displayName}</span>
+              <span className="role-chip">{account.role === "admin" ? t.roleAdmin : t.roleMember}</span>
+            </span>
+            <LanguageSelect language={language} onChange={setLanguage} />
+            <ThemeToggle dark={dark} onToggle={toggleTheme} t={t} className="" />
+            <button type="button" onClick={() => say(t.cameraOff, "error")}>
+              {t.camera}
+            </button>
+            <button type="button" onClick={downloadCsv}>
+              {t.csv}
+            </button>
+            <button type="button" onClick={handleLogout}>
+              {t.logout}
+            </button>
+          </div>
+        </header>
 
-      <p className={styles.recent}>{t.recent}</p>
+        <p className="status-line" data-kind={statusKind}>
+          {status || `${records.length} ${t.recentRecords}`}
+        </p>
 
-      <form className={styles.searchCard} onSubmit={handleRegister}>
-        <input value={barcodeInput} onChange={(event) => { setBarcodeInput(event.target.value); setForm((value) => ({ ...value, barcode: event.target.value })); }} placeholder="000001" />
-        <div className={styles.actionRow}>
-          <button type="button"><Search size={18} />{t.search}</button>
-          <button className={styles.greenButton} type="submit"><Plus size={18} />{t.register}</button>
-          <button type="button" onClick={clearForm}>{t.clear}</button>
-        </div>
-        <div className={styles.detailGrid}>
-          <input value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} placeholder="名前" />
-          <input value={form.kanji} onChange={(event) => setForm((value) => ({ ...value, kanji: event.target.value }))} placeholder="漢字" />
-          <input value={form.kana} onChange={(event) => setForm((value) => ({ ...value, kana: event.target.value }))} placeholder="カタカナ" />
-          <input value={form.address} onChange={(event) => setForm((value) => ({ ...value, address: event.target.value }))} placeholder="住所" />
-        </div>
-      </form>
+        <div className="workspace">
+          <form className="iris-form" onSubmit={handleRegister}>
+            <input
+              className="barcode-input"
+              value={barcode}
+              onChange={(event) => setBarcode(event.target.value)}
+              placeholder={t.searchPlaceholder}
+              inputMode="numeric"
+              aria-label={t.colBarcode}
+            />
 
-      <section className={styles.resultPanel}>
-        <div className={styles.resultHead}>
-          <div><p>結果</p><h2>{t.result}</h2></div>
-          <span>{t.recent}</span>
-        </div>
-        <div className={styles.tableWrap}>
-          <table>
-            <thead><tr><th>NO</th><th>バーコード</th><th>名前</th><th>漢字</th><th>カタカナ</th><th>住所</th><th>追加日時</th><th>操作</th></tr></thead>
-            <tbody>
-              {filteredRecords.map((record) => (
-                <tr key={record.id}>
-                  <td>{record.no}</td><td>{record.barcode}</td><td>{record.name}</td><td>{record.kanji}</td><td>{record.kana}</td><td>{record.address}</td><td>{record.addedAtText}</td>
-                  <td className={styles.actions}><button onClick={() => editRecord(record)}>{t.edit}</button><button onClick={() => removeRecord(record)}><Trash2 size={15} />{t.delete}</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            <div className="actions">
+              <button className="button primary" type="button" onClick={handleSearch}>
+                {t.search}
+              </button>
+              <button className="button success" type="submit" disabled={busy}>
+                {editingId ? t.update : t.register}
+              </button>
+              <button className="button" type="button" onClick={handleClear}>
+                {t.clear}
+              </button>
+            </div>
 
-      {notes.map((note) => (
-        <article className={styles.note} draggable key={note.id} style={{ background: note.color, left: note.x, top: note.y }} onDragEnd={(event) => updateNote(note, { x: event.clientX, y: event.clientY })}>
-          <div className={styles.noteDots}>{noteColors.map((color) => <button key={color} style={{ background: color }} onClick={() => updateNote(note, { color })} />)}<button onClick={() => deleteNote(note)}>×</button></div>
-          <textarea value={note.body} onChange={(event) => updateNote(note, { body: event.target.value })} placeholder="memo" />
-        </article>
-      ))}
-      <button className={styles.addNote} onClick={addNote}>{t.addNote}</button>
-      <p className={styles.status}>{status}</p>
-    </main>
+            {formOpen && (
+              <div className="field-grid">
+                <label>
+                  {t.colName}
+                  <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} autoFocus />
+                </label>
+                <label>
+                  {t.colKanji}
+                  <input value={form.kanji} onChange={(event) => setForm({ ...form, kanji: event.target.value })} />
+                </label>
+                <label>
+                  {t.colKatakana}
+                  <input value={form.katakana} onChange={(event) => setForm({ ...form, katakana: event.target.value })} />
+                </label>
+                <label>
+                  {t.colAddress}
+                  <input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+                </label>
+              </div>
+            )}
+          </form>
+
+          <section className="result-panel">
+            <div className="result-heading">
+              <div>
+                <p className="eyebrow">{t.results}</p>
+                <h2>{t.resultsTitle}</h2>
+              </div>
+              <span className="result-mode-badge">
+                {filtered.length} {t.recentRecords}
+              </span>
+            </div>
+
+            {filtered.length === 0 ? (
+              <p className="empty-state">{t.empty}</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="records-table">
+                  <thead>
+                    <tr>
+                      <th>{t.colNo}</th>
+                      <th>{t.colBarcode}</th>
+                      <th>{t.colName}</th>
+                      <th>{t.colKanji}</th>
+                      <th>{t.colKatakana}</th>
+                      <th>{t.colAddress}</th>
+                      <th>{t.colAddedAt}</th>
+                      <th aria-label={t.colActions} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((record) => (
+                      <tr
+                        key={record.id}
+                        className={editingId === record.id ? "is-editable is-editing" : "is-editable"}
+                        onDoubleClick={() => startEdit(record)}
+                      >
+                        <td className="is-mono">{record.no}</td>
+                        <td className="is-mono">{record.barcode}</td>
+                        <td>{record.name}</td>
+                        <td>{record.kanji}</td>
+                        <td>{record.katakana}</td>
+                        <td>{record.address}</td>
+                        <td className="is-mono">{record.addedDateTime}</td>
+                        <td>
+                          <div className="row-actions">
+                            <button className="mini-edit" type="button" onClick={() => startEdit(record)}>
+                              {t.edit}
+                            </button>
+                            <button className="mini-delete" type="button" onClick={() => removeRecord(record)}>
+                              {t.delete}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+
+      <div className="note-layer">
+        {notes.map((note, index) => (
+          <div
+            key={note.id}
+            className={`iris-note note-${note.color}${draggingId === note.id ? " is-dragging" : ""}`}
+            style={
+              {
+                left: note.x,
+                top: note.y,
+                "--rot": `${index % 2 === 0 ? -1.8 : 1.5}deg`
+              } as React.CSSProperties
+            }
+            onPointerMove={onDrag}
+            onPointerUp={endDrag}
+          >
+            <div className="note-grip" onPointerDown={(event) => beginDrag(event, note)}>
+              <span className="note-dots">
+                {NOTE_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    className={`note-dot dot-${color}`}
+                    type="button"
+                    aria-label={color}
+                    onClick={() => queueNoteSave(note.id, { color })}
+                  />
+                ))}
+              </span>
+              <button className="note-close" type="button" aria-label={t.delete} onClick={() => removeNote(note.id)}>
+                ×
+              </button>
+            </div>
+            <textarea
+              className="note-text"
+              value={note.body}
+              placeholder={t.notePlaceholder}
+              onChange={(event) => queueNoteSave(note.id, { body: event.target.value })}
+            />
+          </div>
+        ))}
+      </div>
+
+      <button className="note-add" type="button" onClick={addNote}>
+        + {t.addNote}
+      </button>
+    </>
   );
 }

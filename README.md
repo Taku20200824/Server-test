@@ -1,90 +1,76 @@
-# IRIS Console (Server-test)
+# IRIS Console — 名前マネージャー (Vercel + Firebase)
 
-Server-test は、名前管理・バーコード検索のコンソールです。
-現在のリポジトリには Vercel で動く Next.js 版を追加しています。登録、ユーザーID、バーコードデータ、付箋メモは Firebase Authentication + Firestore に保存します。
+ローカル版（`C:\Front\laravel-front`, Laravel + IRIS）と同じ見た目・同じ操作を、
+Vercel 上の Next.js + Firebase で再現したものです。
+デザイントークンはローカル版の `resources/css/app.css` をそのまま移植しています。
 
-- `/login` 独立ログイン / アカウント登録画面（4桁ID）
-- `/console` IRIS Console ホーム画面
-- 未ログイン時は `/login` へ移動
-- ログアウト対応
-- バーコード検索・登録・更新・削除
-- CSV ダウンロード
-- 付箋メモ（アカウント単位でFirebase保存）
-- ダークモード / 日英蒙 3言語
+## 画面
 
-## Vercel / Firebase 版
+| ルート | 内容 |
+|--------|------|
+| `/login` | ユーザー名 + パスワードでログイン / アカウント作成 |
+| `/console` | 名前マネージャー（検索・登録・更新・削除・CSV・付箋メモ） |
+| `/` | `/login` へリダイレクト |
 
-Vercel はリポジトリ直下の Next.js アプリをビルドします。
+- 日英蒙の3言語切り替え（選択内容は保存される）
+- ダークモード（選択内容は保存される。初回は OS 設定に従う）
+- 付箋メモ：ドラッグで移動、4色、アカウントごとに Firestore へ保存
+
+## ローカルでの起動
 
 ```bash
 npm install
+npm run dev     # http://localhost:3000
+```
+
+本番ビルドの確認:
+
+```bash
 npm run build
-npm run dev
+npm start
 ```
 
-Firebase project は `server-test-ef8cb` を使います。Web設定は `.env.example` に入っています。Vercel側で環境変数を入れなくても動くように、同じFirebase Web configをコード側にもfallbackとして設定済みです。
+## Firebase 側の設定
 
-### Firebase Consoleで必要な作業
+Firebase project は `server-test-ef8cb` を使います。
 
-1. Authentication を開く
-2. Sign-in method で Anonymous を有効化
-3. Firestore Database の Rules に `firestore.rules` の内容を貼り付ける
-4. Publish を押す
+1. **Authentication** を開く
+2. Sign-in method で **メール / パスワード** を有効化
+   （※ 旧版で使っていた匿名ログインはもう使いません）
+3. **Firestore Database** の Rules に `firestore.rules` の内容を貼り付けて Publish
+4. `irisRecords` の並び替えに `no` の昇順インデックスが必要な場合は、
+   コンソールに表示されるリンクからインデックスを作成
 
-Firestore collections:
+### ユーザー名の扱い
 
-| Collection | 内容 |
-|------------|------|
-| `irisAccounts` | 4桁ID、表示名、Firebase Auth UID |
-| `irisRecords` | バーコード、名前、メモ、登録者ID、Firebase Auth UID |
-| `irisNotes` | アカウント別の付箋メモ、Firebase Auth UID |
+Firebase Auth はメールアドレスでユーザーを識別するため、
+入力されたユーザー名は内部で `<username>@iris-console.local` に変換しています
+（`src/lib/account.ts`）。実際にメールは送信されません。
 
-Firestore Rules は認証済みユーザーだけが読み書きできます。公開の `allow read/write: if true` にはしていません。
+### 管理者にする方法
 
-## 旧ローカル IRIS / Laravel 版メモ
+アカウント作成時の権限は必ず `member` です。
+管理者にするときは Firebase Console で `irisUsers/{uid}` の `role` を
+`admin` に書き換えてください。ルール上、アプリ側からは昇格できません。
 
-以下は、元READMEにあったローカルPC・LAN用の説明です。今のアップロードには `laravel-front/` 本体が入っていないため、この手順だけではVercelでは動きません。
+## Firestore のコレクション
 
-### 必要環境
+| Collection | 内容 | 読み取り | 書き込み |
+|------------|------|----------|----------|
+| `irisUsers/{uid}` | ユーザー名・表示名・権限 | 本人のみ | 本人のみ（`role` は変更不可） |
+| `irisRecords/{id}` | no / barcode / 名前 / 漢字 / カタカナ / 住所 / 追加日時 | ログイン済み全員（共有台帳） | 登録者本人と管理者のみ |
+| `irisNotes/{id}` | 付箋の本文・色・座標 | 本人のみ | 本人のみ |
 
-| ソフト | バージョン目安 | 備考 |
-|--------|---------------|------|
-| PHP | 8.3+ | `php -v` で確認 |
-| Composer | 2.x | |
-| Node.js | 20+ | アセットビルド用 |
-| nginx | 1.26+ | LAN公開・HTTPS(カメラ)用。ローカル確認だけなら不要 |
-| IRIS | - | LAN内で REST API (`/test`) が動いていること |
+## 未対応
 
-### セットアップ（初回）
+- カメラスキャン（ボタンはあるが、押すと「未対応」の案内を出すだけ）
 
-```bat
-git clone https://github.com/Taku20200824/Server-test.git C:\Front
-cd C:\Front
-setup.bat
-```
+## 旧ローカル IRIS / Laravel 版
 
-`setup.bat` が行うこと: `composer install` → `.env` 作成 → `php artisan key:generate` → `npm install` → `npm run build`
+`setup.bat` / `IRIS-START.bat` / `nginx-iris-only-9000.conf` などは
+ローカル PC・LAN 用の運用スクリプトです。本体の `laravel-front/` は
+このリポジトリには含まれていないため、これらのスクリプトだけでは動きません。
 
-### .env の設定
-
-`laravel-front\.env` を開いて自分の環境に合わせる:
-
-```env
-APP_URL=http://<このPCのIP>:9000
-SESSION_LIFETIME=720
-SESSION_COOKIE=iris_session_v2
-IRIS_URL=<IRISホスト>
-IRIS_PORT=52775
-IRIS_API_PATH=/test
-IRIS_USER=<IRISユーザー>
-IRIS_PASSWORD=<IRISパスワード>
-```
-
-### 起動
-
-```bat
-cd C:\Front\laravel-front
-php artisan serve --host=127.0.0.1 --port=8000
-```
-
-LAN公開は `C:\Front\IRIS-START.bat`、停止は `IRIS-STOP.bat` を使います。
+`Test/*.cls` と `iris-mobile-api-with-register.cls` は InterSystems IRIS 側の
+ObjectScript です。**この2つは同じクラス名 `Test.Barcode.MobileApi` を宣言しているので、
+両方をインポートすると後から入れた方で上書きされます。**どちらか一方に統一してください。
