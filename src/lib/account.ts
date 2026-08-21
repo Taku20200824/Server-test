@@ -1,4 +1,4 @@
-export type Role = "admin" | "customer";
+export type Role = "admin" | "customer" | "member";
 
 export type Account = {
   uid: string;
@@ -36,5 +36,5 @@ export function emailToUsername(email: string | null | undefined) {
 }
 
 export function isRole(value: unknown): value is Role {
-  return value === "admin" || value === "customer";
+  return value === "admin" || value === "customer" || value === "member";
 }
