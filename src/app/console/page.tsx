@@ -596,6 +596,8 @@ export default function ConsolePage() {
   }
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>, note: StickyNote) {
+    // × や色ボタンを押したときはドラッグを始めない（クリックを奪わない）
+    if ((event.target as HTMLElement).closest("button")) return;
     dragRef.current = { id: note.id, dx: event.clientX - note.x, dy: event.clientY - note.y };
     setDraggingId(note.id);
     event.currentTarget.setPointerCapture(event.pointerId);
