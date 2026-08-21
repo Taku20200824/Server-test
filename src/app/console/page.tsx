@@ -7,6 +7,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -14,352 +15,280 @@ import {
   setDoc,
   updateDoc
 } from "firebase/firestore";
-import { onAuthStateChanged, signInAnonymously, signOut, User } from "firebase/auth";
-import { Download, Languages, LogOut, Moon, Plus, Save, Search, ScanLine, Sun, Trash2 } from "lucide-react";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { Download, LogOut, Plus, ScanLine, Search, Trash2 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import styles from "./ConsolePage.module.css";
 
 type Language = "ja" | "en" | "mn";
-
-type Account = {
+type Profile = { username: string; role?: string };
+type NameRecord = {
   id: string;
-  displayName: string;
-};
-
-type IrisRecord = {
-  id: string;
+  no: number;
   barcode: string;
   name: string;
-  memo: string;
-  ownerId: string;
-  authUid?: string;
+  kanji: string;
+  kana: string;
+  address: string;
+  ownerUid: string;
+  ownerName: string;
+  addedAtText: string;
 };
-
-type Announcement = {
-  title: string;
-  body: string;
-  date: string;
-};
+type StickyNote = { id: string; body: string; color: string; x: number; y: number; ownerUid: string };
 
 const labels = {
-  ja: {
-    account: "アカウント",
-    barcode: "バーコード",
-    command: "登録 / 更新",
-    download: "CSV",
-    empty: "データがありません",
-    logout: "ログアウト",
-    memo: "付箋メモ",
-    name: "名前",
-    register: "登録",
-    scan: "読取",
-    search: "検索",
-    subtitle: "Server-test 管理コンソール"
-  },
-  en: {
-    account: "Account",
-    barcode: "Barcode",
-    command: "Save",
-    download: "CSV",
-    empty: "No data",
-    logout: "Logout",
-    memo: "Sticky note",
-    name: "Name",
-    register: "Register",
-    scan: "Scan",
-    search: "Search",
-    subtitle: "Server-test management console"
-  },
-  mn: {
-    account: "Аккаунт",
-    barcode: "Баркод",
-    command: "Хадгалах",
-    download: "CSV",
-    empty: "Өгөгдөл алга",
-    logout: "Гарах",
-    memo: "Тэмдэглэл",
-    name: "Нэр",
-    register: "Бүртгэх",
-    scan: "Унших",
-    search: "Хайх",
-    subtitle: "Server-test удирдлагын консол"
-  }
+  ja: { title: "名前マネージャー", search: "検索", register: "登録", clear: "クリア", result: "バーコード結果", recent: "5 最近のレコード", scan: "カメラスキャン", csv: "CSV", logout: "ログアウト", addNote: "+ 付箋を追加", edit: "編集", delete: "削除", admin: "管理者" },
+  en: { title: "Name Manager", search: "Search", register: "Register", clear: "Clear", result: "Barcode Results", recent: "5 Recent Records", scan: "Camera Scan", csv: "CSV", logout: "Logout", addNote: "+ Add note", edit: "Edit", delete: "Delete", admin: "Admin" },
+  mn: { title: "Нэрийн менежер", search: "Хайх", register: "Бүртгэх", clear: "Цэвэрлэх", result: "Баркод үр дүн", recent: "Сүүлийн 5 бичлэг", scan: "Камер унших", csv: "CSV", logout: "Гарах", addNote: "+ Наалт нэмэх", edit: "Засах", delete: "Устгах", admin: "Админ" }
 };
 
-const emptyRecord = { barcode: "", name: "", memo: "" };
+const noteColors = ["#fff48f", "#a8f0d0", "#ffb6cb", "#9b95ff"];
+const emptyForm = { barcode: "", name: "", kanji: "", kana: "", address: "" };
 
-function csvEscape(value: string) {
-  return `"${value.replaceAll('"', '""')}"`;
+function dateText(value: unknown) {
+  if (value && typeof value === "object" && "toDate" in value && typeof value.toDate === "function") {
+    const date = value.toDate() as Date;
+    return date.toLocaleString("ja-JP", { hour12: false });
+  }
+  return "";
 }
 
-function readStoredAccount(): Account | null {
-  try {
-    const raw = window.localStorage.getItem("irisAccount");
-    if (!raw) return null;
-    const data = JSON.parse(raw) as Account;
-    if (!/^\d{4}$/.test(data.id) || !data.displayName) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function getFirebaseAuthStatus(error: unknown) {
-  const message = error instanceof Error ? error.message : "Firebase auth error";
-  if (message.includes("auth/configuration-not-found")) {
-    return "Firebase Authentication is not enabled. Enable Anonymous sign-in in Firebase Console.";
-  }
-  if (message.includes("auth/operation-not-allowed")) {
-    return "Anonymous sign-in is disabled in Firebase Authentication.";
-  }
-  return message;
+function csvEscape(value: string | number) {
+  return `"${String(value).replaceAll('"', '""')}"`;
 }
 
 export default function ConsolePage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [language, setLanguage] = useState<Language>("ja");
-  const [dark, setDark] = useState(true);
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-  const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
-  const [records, setRecords] = useState<IrisRecord[]>([]);
-  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
-  const [search, setSearch] = useState("");
-  const [recordForm, setRecordForm] = useState(emptyRecord);
+  const [dark, setDark] = useState(false);
+  const [records, setRecords] = useState<NameRecord[]>([]);
+  const [notes, setNotes] = useState<StickyNote[]>([]);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [status, setStatus] = useState("Firebase ready");
+  const [status, setStatus] = useState("");
 
   const t = labels[language];
+  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
-    const account = readStoredAccount();
-    if (!account) {
+    const savedLanguage = window.localStorage.getItem("irisLanguage") as Language | null;
+    const savedTheme = window.localStorage.getItem("irisTheme");
+    if (savedLanguage && savedLanguage in labels) setLanguage(savedLanguage);
+    if (savedTheme) setDark(savedTheme === "dark");
+  }, []);
+
+  useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
+    if (!nextUser) {
       router.replace("/login");
       return;
     }
-    setCurrentAccount(account);
-
-    return onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setFirebaseUser(user);
-        return;
-      }
-      try {
-        const credential = await signInAnonymously(auth);
-        setFirebaseUser(credential.user);
-      } catch (error) {
-        setStatus(getFirebaseAuthStatus(error));
-      }
-    });
-  }, [router]);
+    setUser(nextUser);
+    const profileRef = doc(db, "irisUsers", nextUser.uid);
+    const snapshot = await getDoc(profileRef);
+    const data = snapshot.data();
+    const username = typeof data?.username === "string" ? data.username : nextUser.displayName || "user";
+    const role = typeof data?.role === "string" ? data.role : "user";
+    setProfile({ username, role });
+    await setDoc(profileRef, { username, email: nextUser.email, role, updatedAt: serverTimestamp() }, { merge: true });
+  }), [router]);
 
   useEffect(() => {
-    if (!firebaseUser) return;
-    const recordsQuery = query(collection(db, "irisRecords"), orderBy("updatedAt", "desc"));
+    if (!user) return;
+    const recordsQuery = query(collection(db, "irisRecords"), orderBy("addedAt", "desc"));
     return onSnapshot(recordsQuery, (snapshot) => {
-      setRecords(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as IrisRecord));
+      setRecords(snapshot.docs.map((item) => {
+        const data = item.data();
+        return {
+          id: item.id,
+          no: typeof data.no === "number" ? data.no : 0,
+          barcode: typeof data.barcode === "string" ? data.barcode : "",
+          name: typeof data.name === "string" ? data.name : "",
+          kanji: typeof data.kanji === "string" ? data.kanji : "",
+          kana: typeof data.kana === "string" ? data.kana : "",
+          address: typeof data.address === "string" ? data.address : "",
+          ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
+          ownerName: typeof data.ownerName === "string" ? data.ownerName : "",
+          addedAtText: dateText(data.addedAt)
+        };
+      }));
     }, (error) => setStatus(error.message));
-  }, [firebaseUser]);
+  }, [user]);
 
   useEffect(() => {
-    if (!firebaseUser) return;
-    return onSnapshot(doc(db, "announcements", "server-ready"), (snapshot) => {
-      const data = snapshot.data();
-      if (!data) {
-        setAnnouncement(null);
-        return;
-      }
-      setAnnouncement({
-        title: typeof data.title === "string" ? data.title : "Server ready",
-        body: typeof data.body === "string" ? data.body : "",
-        date: typeof data.date === "string" ? data.date : ""
-      });
+    if (!user) return;
+    const notesQuery = query(collection(db, "irisStickyNotes"), orderBy("updatedAt", "desc"));
+    return onSnapshot(notesQuery, (snapshot) => {
+      setNotes(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as StickyNote));
     }, (error) => setStatus(error.message));
-  }, [firebaseUser]);
-
-  useEffect(() => {
-    if (!currentAccount || !firebaseUser) return;
-    return onSnapshot(doc(db, "irisNotes", currentAccount.id), (snapshot) => {
-      const data = snapshot.data();
-      setNote(typeof data?.body === "string" ? data.body : "");
-    }, (error) => setStatus(error.message));
-  }, [currentAccount, firebaseUser]);
+  }, [user]);
 
   const filteredRecords = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    if (!keyword) return records;
-    return records.filter((record) => [record.barcode, record.name, record.memo, record.ownerId].join(" ").toLowerCase().includes(keyword));
-  }, [records, search]);
+    const keyword = barcodeInput.trim().toLowerCase();
+    const source = keyword ? records.filter((record) => [record.barcode, record.name, record.kanji, record.kana, record.address].join(" ").toLowerCase().includes(keyword)) : records;
+    return source.slice(0, 5);
+  }, [records, barcodeInput]);
 
-  async function handleRecord(event: FormEvent<HTMLFormElement>) {
+  function changeLanguage(value: Language) {
+    setLanguage(value);
+    window.localStorage.setItem("irisLanguage", value);
+  }
+
+  function toggleTheme() {
+    setDark((value) => {
+      const next = !value;
+      window.localStorage.setItem("irisTheme", next ? "dark" : "light");
+      return next;
+    });
+  }
+
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!currentAccount || !firebaseUser) {
-      setStatus("先にログインしてください");
+    if (!user || !profile) return;
+    const cleanBarcode = (form.barcode || barcodeInput).trim();
+    if (!cleanBarcode) {
+      setStatus("Barcode required");
       return;
     }
-    if (!recordForm.barcode.trim() || !recordForm.name.trim()) {
-      setStatus("バーコードと名前を入力してください");
-      return;
-    }
-
     const payload = {
-      barcode: recordForm.barcode.trim(),
-      name: recordForm.name.trim(),
-      memo: recordForm.memo.trim(),
-      ownerId: currentAccount.id,
-      authUid: firebaseUser.uid,
+      no: Number(cleanBarcode.replace(/\D/g, "")) || records.length + 1,
+      barcode: cleanBarcode,
+      name: form.name.trim() || profile.username,
+      kanji: form.kanji.trim(),
+      kana: form.kana.trim(),
+      address: form.address.trim(),
+      ownerUid: user.uid,
+      ownerName: profile.username,
+      addedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
-
     if (editingId) {
       await updateDoc(doc(db, "irisRecords", editingId), payload);
-      setStatus("Record updated");
     } else {
       await addDoc(collection(db, "irisRecords"), payload);
-      setStatus("Record registered");
     }
+    setForm(emptyForm);
+    setEditingId(null);
+    setStatus("Saved");
+  }
 
-    setRecordForm(emptyRecord);
+  function editRecord(record: NameRecord) {
+    setEditingId(record.id);
+    setBarcodeInput(record.barcode);
+    setForm({ barcode: record.barcode, name: record.name, kanji: record.kanji, kana: record.kana, address: record.address });
+  }
+
+  async function removeRecord(record: NameRecord) {
+    if (!user || (!isAdmin && record.ownerUid !== user.uid)) return;
+    await deleteDoc(doc(db, "irisRecords", record.id));
+  }
+
+  function clearForm() {
+    setBarcodeInput("");
+    setForm(emptyForm);
     setEditingId(null);
   }
 
-  async function saveNote() {
-    if (!currentAccount || !firebaseUser) {
-      setStatus("先にログインしてください");
-      return;
-    }
-
-    await setDoc(doc(db, "irisNotes", currentAccount.id), {
-      body: note,
-      displayName: currentAccount.displayName,
-      authUid: firebaseUser.uid,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-    setStatus("Note saved");
+  async function addNote() {
+    if (!user) return;
+    await addDoc(collection(db, "irisStickyNotes"), { body: "", color: noteColors[0], x: 60, y: 520, ownerUid: user.uid, updatedAt: serverTimestamp() });
   }
 
-  function editRecord(record: IrisRecord) {
-    setEditingId(record.id);
-    setRecordForm({ barcode: record.barcode, name: record.name, memo: record.memo });
+  async function updateNote(note: StickyNote, patch: Partial<StickyNote>) {
+    if (!user || (!isAdmin && note.ownerUid !== user.uid)) return;
+    await updateDoc(doc(db, "irisStickyNotes", note.id), { ...patch, updatedAt: serverTimestamp() });
   }
 
-  async function removeRecord(id: string) {
-    await deleteDoc(doc(db, "irisRecords", id));
-    if (editingId === id) {
-      setEditingId(null);
-      setRecordForm(emptyRecord);
-    }
-    setStatus("Record deleted");
-  }
-
-  async function handleLogout() {
-    window.localStorage.removeItem("irisAccount");
-    await signOut(auth);
-    router.replace("/login");
+  async function deleteNote(note: StickyNote) {
+    if (!user || (!isAdmin && note.ownerUid !== user.uid)) return;
+    await deleteDoc(doc(db, "irisStickyNotes", note.id));
   }
 
   function downloadCsv() {
-    const header = ["barcode", "name", "memo", "ownerId"];
-    const rows = records.map((record) => [record.barcode, record.name, record.memo, record.ownerId].map(csvEscape).join(","));
-    const csv = [header.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const header = ["NO", "バーコード", "名前", "漢字", "カタカナ", "住所", "追加日時"];
+    const rows = records.map((record) => [record.no, record.barcode, record.name, record.kanji, record.kana, record.address, record.addedAtText].map(csvEscape).join(","));
+    const blob = new Blob(["\uFEFF" + [header.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "server-test-records.csv";
+    link.download = "iris-records.csv";
     link.click();
     URL.revokeObjectURL(url);
   }
 
-  function handleScanPlaceholder() {
-    setStatus("Camera scan is not enabled in this Vercel version. Please enter the barcode manually.");
+  async function handleLogout() {
+    await signOut(auth);
+    router.replace("/login");
   }
 
-  if (!currentAccount) {
-    return <main className={styles.loading}>Loading...</main>;
-  }
+  if (!user || !profile) return <main className={styles.loading}>Loading...</main>;
 
   return (
     <main className={dark ? `${styles.page} ${styles.dark}` : styles.page}>
-      <section className={styles.shell}>
-        <header className={styles.header}>
-          <div>
-            <p className={styles.brand}>SERVER-TEST</p>
-            <h1>IRIS Console</h1>
-            <p>{t.subtitle}</p>
-          </div>
-          <div className={styles.tools}>
-            <button type="button" onClick={() => setLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")} title="language"><Languages size={22} />{language.toUpperCase()}</button>
-            <button type="button" onClick={() => setDark((value) => !value)} title="theme">{dark ? <Sun size={22} /> : <Moon size={22} />}</button>
-            <button className={styles.logoutButton} type="button" onClick={handleLogout}><LogOut size={22} />{t.logout}</button>
-          </div>
-        </header>
+      <header className={styles.header}>
+        <div className={styles.logo} />
+        <div>
+          <p>IRIS CONSOLE</p>
+          <h1>{t.title}</h1>
+        </div>
+      </header>
 
-        <section className={styles.statusline}>
-          <span>{currentAccount.id} / {currentAccount.displayName}</span>
-          <span>{status}</span>
-        </section>
+      <nav className={styles.toolbar}>
+        <span className={styles.userPill}>{profile.username}{isAdmin && <b>{t.admin}</b>}</span>
+        <button onClick={() => changeLanguage(language === "ja" ? "en" : language === "en" ? "mn" : "ja")}>{language === "ja" ? "日本語" : language === "en" ? "English" : "Монгол"}</button>
+        <button onClick={toggleTheme}>{dark ? "ライトモード" : "ダークモード"}</button>
+        <button onClick={() => setStatus("Camera scan is not enabled yet.")}><ScanLine size={18} />{t.scan}</button>
+        <button onClick={downloadCsv}><Download size={18} />{t.csv}</button>
+        <button onClick={handleLogout}><LogOut size={18} />{t.logout}</button>
+      </nav>
 
-        {announcement && (
-          <section className={styles.announcement}>
-            <div>
-              <p className={styles.announcementDate}>{announcement.date}</p>
-              <h2>{announcement.title}</h2>
-            </div>
-            <p>{announcement.body}</p>
-          </section>
-        )}
+      <p className={styles.recent}>{t.recent}</p>
 
-        <div className={styles.workspace}>
-          <aside className={styles.sidepanel}>
-            <div className={styles.accountBox}>
-              <h2>{t.account}</h2>
-              <p className={styles.accountId}>{currentAccount.id}</p>
-              <p className={styles.accountName}>{currentAccount.displayName}</p>
-            </div>
+      <form className={styles.searchCard} onSubmit={handleRegister}>
+        <input value={barcodeInput} onChange={(event) => { setBarcodeInput(event.target.value); setForm((value) => ({ ...value, barcode: event.target.value })); }} placeholder="000001" />
+        <div className={styles.actionRow}>
+          <button type="button"><Search size={18} />{t.search}</button>
+          <button className={styles.greenButton} type="submit"><Plus size={18} />{t.register}</button>
+          <button type="button" onClick={clearForm}>{t.clear}</button>
+        </div>
+        <div className={styles.detailGrid}>
+          <input value={form.name} onChange={(event) => setForm((value) => ({ ...value, name: event.target.value }))} placeholder="名前" />
+          <input value={form.kanji} onChange={(event) => setForm((value) => ({ ...value, kanji: event.target.value }))} placeholder="漢字" />
+          <input value={form.kana} onChange={(event) => setForm((value) => ({ ...value, kana: event.target.value }))} placeholder="カタカナ" />
+          <input value={form.address} onChange={(event) => setForm((value) => ({ ...value, address: event.target.value }))} placeholder="住所" />
+        </div>
+      </form>
 
-            <div className={styles.noteArea}>
-              <h2>{t.memo}</h2>
-              <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Memo" />
-              <button type="button" onClick={saveNote}><Save size={22} />{t.command}</button>
-            </div>
-          </aside>
-
-          <section className={styles.mainpanel}>
-            <form className={styles.recordForm} onSubmit={handleRecord}>
-              <label>{t.barcode}<input value={recordForm.barcode} onChange={(event) => setRecordForm((value) => ({ ...value, barcode: event.target.value }))} placeholder="4900000000000" /></label>
-              <label>{t.name}<input value={recordForm.name} onChange={(event) => setRecordForm((value) => ({ ...value, name: event.target.value }))} placeholder="Name" /></label>
-              <label>Memo<input value={recordForm.memo} onChange={(event) => setRecordForm((value) => ({ ...value, memo: event.target.value }))} placeholder="Optional" /></label>
-              <button className={styles.primary} type="submit"><Plus size={22} />{editingId ? t.command : t.register}</button>
-            </form>
-
-            <div className={styles.searchbar}>
-              <Search size={23} />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.search} />
-              <button type="button" onClick={handleScanPlaceholder}><ScanLine size={22} />{t.scan}</button>
-              <button type="button" onClick={downloadCsv}><Download size={22} />{t.download}</button>
-            </div>
-
-            <div className={styles.tableWrap}>
-              <table>
-                <thead><tr><th>{t.barcode}</th><th>{t.name}</th><th>Memo</th><th>ID</th><th></th></tr></thead>
-                <tbody>
-                  {filteredRecords.length === 0 && <tr><td className={styles.emptyCell} colSpan={5}>{t.empty}</td></tr>}
-                  {filteredRecords.map((record) => (
-                    <tr key={record.id} onDoubleClick={() => editRecord(record)}>
-                      <td>{record.barcode}</td><td>{record.name}</td><td>{record.memo}</td><td>{record.ownerId}</td>
-                      <td className={styles.actions}>
-                        <button type="button" onClick={() => editRecord(record)}><Save size={16} /></button>
-                        <button type="button" onClick={() => removeRecord(record.id)}><Trash2 size={16} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+      <section className={styles.resultPanel}>
+        <div className={styles.resultHead}>
+          <div><p>結果</p><h2>{t.result}</h2></div>
+          <span>{t.recent}</span>
+        </div>
+        <div className={styles.tableWrap}>
+          <table>
+            <thead><tr><th>NO</th><th>バーコード</th><th>名前</th><th>漢字</th><th>カタカナ</th><th>住所</th><th>追加日時</th><th>操作</th></tr></thead>
+            <tbody>
+              {filteredRecords.map((record) => (
+                <tr key={record.id}>
+                  <td>{record.no}</td><td>{record.barcode}</td><td>{record.name}</td><td>{record.kanji}</td><td>{record.kana}</td><td>{record.address}</td><td>{record.addedAtText}</td>
+                  <td className={styles.actions}><button onClick={() => editRecord(record)}>{t.edit}</button><button onClick={() => removeRecord(record)}><Trash2 size={15} />{t.delete}</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
+
+      {notes.map((note) => (
+        <article className={styles.note} draggable key={note.id} style={{ background: note.color, left: note.x, top: note.y }} onDragEnd={(event) => updateNote(note, { x: event.clientX, y: event.clientY })}>
+          <div className={styles.noteDots}>{noteColors.map((color) => <button key={color} style={{ background: color }} onClick={() => updateNote(note, { color })} />)}<button onClick={() => deleteNote(note)}>×</button></div>
+          <textarea value={note.body} onChange={(event) => updateNote(note, { body: event.target.value })} placeholder="memo" />
+        </article>
+      ))}
+      <button className={styles.addNote} onClick={addNote}>{t.addNote}</button>
+      <p className={styles.status}>{status}</p>
     </main>
   );
 }
