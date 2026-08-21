@@ -13,14 +13,14 @@ const ja = {
   // login
   loginTitle: "ログイン",
   signupTitle: "アカウント作成",
-  username: "ユーザー名",
+  username: "ID",
   password: "パスワード",
   displayName: "表示名",
   loginAction: "ログイン",
   signupAction: "アカウント作成",
   backToLogin: "ログインに戻る",
-  loginHint: "登録済みのユーザー名とパスワードでログインします。",
-  signupHint: "新しいユーザー名・パスワード・表示名を登録します。",
+  loginHint: "登録済みのIDとパスワードでログインします。",
+  signupHint: "IDが9で始まる場合は管理者、それ以外は顧客として作成します。",
 
   // console
   searchPlaceholder: "000001",
@@ -50,13 +50,13 @@ const ja = {
   lightMode: "ライトモード",
   csv: "CSV",
   roleAdmin: "管理者",
-  roleMember: "一般",
+  roleMember: "顧客",
   notes: "付箋メモ",
   addNote: "付箋を追加",
   notePlaceholder: "メモを書く",
 
   // messages
-  needUsername: "ユーザー名を入力してください",
+  needUsername: "数字のIDを入力してください",
   needPassword: "パスワードを6文字以上で入力してください",
   needDisplayName: "表示名を入力してください",
   needBarcodeName: "バーコードと名前は必須です",
@@ -71,8 +71,8 @@ const ja = {
   ready: "準備完了",
   connecting: "接続中...",
   notFound: "該当するレコードがありません",
-  wrongCredentials: "ユーザー名またはパスワードが違います",
-  userExists: "このユーザー名はすでに使われています",
+  wrongCredentials: "IDまたはパスワードが違います",
+  userExists: "このIDはすでに使われています",
   weakPassword: "パスワードは6文字以上にしてください",
   authSetup:
     "Firebase Authentication が有効になっていません。Firebase Console > Authentication > Sign-in method で メール/パスワード を有効にしてください。"
@@ -86,14 +86,14 @@ const en: LabelSet = {
 
   loginTitle: "Login",
   signupTitle: "Create account",
-  username: "Username",
+  username: "ID",
   password: "Password",
   displayName: "Display name",
   loginAction: "Login",
   signupAction: "Create account",
   backToLogin: "Back to login",
-  loginHint: "Sign in with your username and password.",
-  signupHint: "Register a new username, password and display name.",
+  loginHint: "Sign in with your registered ID and password.",
+  signupHint: "IDs starting with 9 become admins; all others become customers.",
 
   searchPlaceholder: "000001",
   search: "Search",
@@ -122,12 +122,12 @@ const en: LabelSet = {
   lightMode: "Light mode",
   csv: "CSV",
   roleAdmin: "Admin",
-  roleMember: "Member",
+  roleMember: "Customer",
   notes: "Sticky notes",
   addNote: "Add note",
   notePlaceholder: "Write a note",
 
-  needUsername: "Enter a username",
+  needUsername: "Enter a numeric ID",
   needPassword: "Password must be at least 6 characters",
   needDisplayName: "Enter a display name",
   needBarcodeName: "Barcode and name are required",
@@ -142,8 +142,8 @@ const en: LabelSet = {
   ready: "Ready",
   connecting: "Connecting...",
   notFound: "No matching record",
-  wrongCredentials: "Wrong username or password",
-  userExists: "That username is already taken",
+  wrongCredentials: "Wrong ID or password",
+  userExists: "That ID is already taken",
   weakPassword: "Password must be at least 6 characters",
   authSetup:
     "Firebase Authentication is not enabled. Open Firebase Console > Authentication > Sign-in method and enable Email/Password."
@@ -155,14 +155,14 @@ const mn: LabelSet = {
 
   loginTitle: "Нэвтрэх",
   signupTitle: "Аккаунт үүсгэх",
-  username: "Хэрэглэгчийн нэр",
+  username: "ID",
   password: "Нууц үг",
   displayName: "Харагдах нэр",
   loginAction: "Нэвтрэх",
   signupAction: "Аккаунт үүсгэх",
   backToLogin: "Нэвтрэх рүү буцах",
-  loginHint: "Бүртгэлтэй нэр, нууц үгээрээ нэвтэрнэ үү.",
-  signupHint: "Шинэ нэр, нууц үг, харагдах нэрээ бүртгүүлнэ.",
+  loginHint: "Бүртгэлтэй ID, нууц үгээрээ нэвтэрнэ үү.",
+  signupHint: "ID нь 9-өөр эхэлбэл админ, бусад нь customer болно.",
 
   searchPlaceholder: "000001",
   search: "Хайх",
@@ -191,12 +191,12 @@ const mn: LabelSet = {
   lightMode: "Гэрэлтэй горим",
   csv: "CSV",
   roleAdmin: "Админ",
-  roleMember: "Хэрэглэгч",
+  roleMember: "Customer",
   notes: "Тэмдэглэл",
   addNote: "Тэмдэглэл нэмэх",
   notePlaceholder: "Тэмдэглэл бичих",
 
-  needUsername: "Хэрэглэгчийн нэрээ оруулна уу",
+  needUsername: "Тоон ID оруулна уу",
   needPassword: "Нууц үг 6-аас дээш тэмдэгт байх ёстой",
   needDisplayName: "Харагдах нэрээ оруулна уу",
   needBarcodeName: "Баркод болон нэр заавал шаардлагатай",
@@ -211,8 +211,8 @@ const mn: LabelSet = {
   ready: "Бэлэн",
   connecting: "Холбогдож байна...",
   notFound: "Тохирох бичлэг алга",
-  wrongCredentials: "Нэр эсвэл нууц үг буруу байна",
-  userExists: "Энэ нэр аль хэдийн бүртгэгдсэн байна",
+  wrongCredentials: "ID эсвэл нууц үг буруу байна",
+  userExists: "Энэ ID аль хэдийн бүртгэгдсэн байна",
   weakPassword: "Нууц үг 6-аас дээш тэмдэгт байх ёстой",
   authSetup:
     "Firebase Authentication идэвхгүй байна. Firebase Console > Authentication > Sign-in method дээр Email/Password-г асаана уу."
