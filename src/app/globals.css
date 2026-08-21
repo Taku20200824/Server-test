@@ -1466,3 +1466,60 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- CSV tools ---------- */
+
+.csv-panel {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+  display: grid;
+  gap: 14px;
+}
+
+.csv-note {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.csv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.csv-actions .file-button {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- note tip ---------- */
+
+.note-tip {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 5;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--glass);
+  color: var(--muted);
+  box-shadow: var(--inner-light), var(--inner-line), var(--shadow-sm);
+  backdrop-filter: blur(22px) saturate(130%);
+  font-size: 0.76rem;
+  font-weight: 640;
+  transform: translateX(-50%);
+  animation: panel-in 0.5s cubic-bezier(0.2, 0.82, 0.2, 1) both;
+  pointer-events: none;
+}
+
+@media (max-width: 980px) {
+  .note-tip {
+    display: none;
+  }
+}

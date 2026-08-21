@@ -64,6 +64,14 @@ const ja = {
   passwordHint: "空欄のままなら変更しません",
   viewOnly: "閲覧のみ",
 
+  // CSV tools
+  csvTools: "CSVツール",
+  csvNote: "IRISレコードをダウンロードまたはアップロードします。",
+  downloadCsv: "CSVダウンロード",
+  downloadBarcodes: "バーコードCSV",
+  chooseCsv: "CSVを選択",
+  uploadCsv: "CSVアップロード",
+
   // camera
   cameraTitle: "カメラスキャン",
   cameraClose: "閉じる",
@@ -90,6 +98,8 @@ const ja = {
   passwordMismatch: "パスワードが一致しません",
   needRecentLogin: "セキュリティのため再ログインしてから変更してください",
   viewOnlyNotice: "閲覧のみのアカウントです。登録・編集はできません。",
+  csvImported: "件を取り込みました",
+  csvEmpty: "取り込むデータがありません",
   ready: "準備完了",
   connecting: "接続中...",
   notFound: "該当するレコードがありません",
@@ -157,6 +167,13 @@ const en: LabelSet = {
   passwordHint: "Leave blank to keep it unchanged",
   viewOnly: "View only",
 
+  csvTools: "CSV tools",
+  csvNote: "Download or upload IRIS records.",
+  downloadCsv: "Download CSV",
+  downloadBarcodes: "Download barcodes",
+  chooseCsv: "Choose CSV",
+  uploadCsv: "Upload CSV",
+
   cameraTitle: "Camera scan",
   cameraClose: "Close",
   cameraScanHint: "Point the camera at a barcode",
@@ -181,6 +198,8 @@ const en: LabelSet = {
   passwordMismatch: "Passwords do not match",
   needRecentLogin: "Please sign in again before changing this, for security.",
   viewOnlyNotice: "This account is view-only. Registering and editing are disabled.",
+  csvImported: "records imported",
+  csvEmpty: "No data to import",
   ready: "Ready",
   connecting: "Connecting...",
   notFound: "No matching record",
@@ -246,6 +265,13 @@ const mn: LabelSet = {
   passwordHint: "Хоосон орхивол нууц үг өөрчлөгдөхгүй",
   viewOnly: "Зөвхөн харах",
 
+  csvTools: "CSV хэрэгсэл",
+  csvNote: "IRIS датаг CSV-ээр татах эсвэл оруулах.",
+  downloadCsv: "CSV татах",
+  downloadBarcodes: "Barcode татах",
+  chooseCsv: "CSV сонгох",
+  uploadCsv: "CSV оруулах",
+
   cameraTitle: "Камер уншуулах",
   cameraClose: "Хаах",
   cameraScanHint: "Баркодоо камерт харуулна уу",
@@ -270,6 +296,8 @@ const mn: LabelSet = {
   passwordMismatch: "Нууц үг таарахгүй байна",
   needRecentLogin: "Аюулгүй байдлын үүднээс дахин нэвтэрч байж өөрчилнө үү",
   viewOnlyNotice: "Зөвхөн харах эрхтэй аккаунт. Бүртгэх, засах боломжгүй.",
+  csvImported: "бичлэг орууллаа",
+  csvEmpty: "Оруулах өгөгдөл алга",
   ready: "Бэлэн",
   connecting: "Холбогдож байна...",
   notFound: "Тохирох бичлэг алга",

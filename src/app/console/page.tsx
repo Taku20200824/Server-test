@@ -21,7 +21,8 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut, updatePassword, updateProfile, User } from "firebase/auth";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
@@ -52,8 +53,6 @@ type StickyNote = {
   color: NoteColor;
   x: number;
   y: number;
-  ownerUid: string;
-  ownerName: string;
 };
 
 const NOTE_COLORS: NoteColor[] = ["lemon", "mint", "rose", "iris"];
@@ -114,6 +113,8 @@ export default function ConsolePage() {
   const [profileConfirm, setProfileConfirm] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
 
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+
   const [status, setStatus] = useState("");
   const [statusKind, setStatusKind] = useState<"info" | "error">("info");
   const [busy, setBusy] = useState(false);
@@ -121,6 +122,7 @@ export default function ConsolePage() {
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
 
   const t = labels[language];
   const canEdit = account?.role === "admin";
@@ -173,12 +175,12 @@ export default function ConsolePage() {
     );
   }, [account, say]);
 
-  /* ---------- sticky notes (shared board) ---------- */
+  /* ---------- sticky notes (per account) ---------- */
 
   useEffect(() => {
     if (!account) return;
     return onSnapshot(
-      query(collection(db, "irisNotes")),
+      query(collection(db, "irisNotes"), where("ownerUid", "==", account.uid)),
       (snapshot) => {
         setNotes(
           snapshot.docs.map((item) => {
@@ -188,9 +190,7 @@ export default function ConsolePage() {
               body: typeof data.body === "string" ? data.body : "",
               color: isNoteColor(data.color) ? data.color : "lemon",
               x: typeof data.x === "number" ? data.x : 40,
-              y: typeof data.y === "number" ? data.y : 140,
-              ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
-              ownerName: typeof data.ownerName === "string" ? data.ownerName : ""
+              y: typeof data.y === "number" ? data.y : 140
             };
           })
         );
@@ -425,10 +425,105 @@ export default function ConsolePage() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadBarcodes() {
+    const header = [t.colNo, t.colBarcode, t.colName];
+    const rows = filtered.map((record) =>
+      [csvCell(String(record.no)), `="${record.barcode.replaceAll('"', "")}"`, csvCell(record.name)].join(",")
+    );
+    const csv = "﻿" + [header.map(csvCell).join(","), ...rows].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "iris-barcodes.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function parseCsv(text: string): string[][] {
+    const rows: string[][] = [];
+    let field = "";
+    let row: string[] = [];
+    let inQuotes = false;
+    const pushField = () => {
+      row.push(field);
+      field = "";
+    };
+    const pushRow = () => {
+      pushField();
+      rows.push(row);
+      row = [];
+    };
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (inQuotes) {
+        if (char === '"') {
+          if (text[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field += char;
+        }
+      } else if (char === '"') {
+        inQuotes = true;
+      } else if (char === ",") {
+        pushField();
+      } else if (char === "\n") {
+        pushRow();
+      } else if (char !== "\r") {
+        field += char;
+      }
+    }
+    if (field.length > 0 || row.length > 0) pushRow();
+    return rows.filter((cells) => cells.some((cell) => cell.trim() !== ""));
+  }
+
+  async function importCsv(file: File) {
+    if (!account || !canEdit) return;
+    setBusy(true);
+    try {
+      const rows = parseCsv((await file.text()).replace(/^﻿/, ""));
+      if (rows.length <= 1) return say(t.csvEmpty, "error");
+
+      let no = nextNo;
+      let added = 0;
+      // 先頭行はヘッダー（NO, バーコード, 名前, 漢字, カタカナ, 住所, 追加日時）
+      for (const cols of rows.slice(1)) {
+        // ="000001" 形式や余分な文字を除いて数字だけにする
+        const barcode = (cols[1] ?? "").replace(/\D/g, "").slice(0, 20);
+        const name = (cols[2] ?? "").trim().slice(0, 160);
+        if (!barcode || !name) continue;
+        await addDoc(collection(db, "irisRecords"), {
+          no: no++,
+          barcode,
+          name,
+          kanji: (cols[3] ?? "").trim().slice(0, 160),
+          katakana: (cols[4] ?? "").trim().slice(0, 160),
+          address: (cols[5] ?? "").trim().slice(0, 300),
+          ownerUid: account.uid,
+          ownerName: account.displayName,
+          addedDateTime: (cols[6] ?? "").trim().slice(0, 40) || nowStamp(),
+          updatedAt: serverTimestamp()
+        });
+        added++;
+      }
+      setCsvFile(null);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+      say(`${added} ${t.csvImported}`);
+    } catch (error) {
+      say(error instanceof Error ? error.message : "CSV error", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   /* ---------- note actions ---------- */
 
+  // 付箋はアカウントごと。誰でも自分の付箋を作成・編集・削除できる。
   async function createNoteAt(clientX: number, clientY: number) {
-    if (!account || !canEdit) return;
+    if (!account) return;
     const x = Math.max(8, Math.min(window.innerWidth - 232, clientX - 110));
     const y = Math.max(8, Math.min(window.innerHeight - 150, clientY - 20));
     const index = notes.length;
@@ -439,7 +534,6 @@ export default function ConsolePage() {
         x,
         y,
         ownerUid: account.uid,
-        ownerName: account.displayName,
         updatedAt: serverTimestamp()
       });
     } catch (error) {
@@ -448,12 +542,11 @@ export default function ConsolePage() {
   }
 
   function handleBackgroundDouble(event: React.MouseEvent<HTMLElement>) {
-    if (!canEdit) return;
     // パネルやコントロール上のダブルクリックは無視し、空白の背景だけで付箋を作る
     const target = event.target as HTMLElement;
     if (
       target.closest(
-        ".account-panel, .iris-form, .result-panel, .app-header, .iris-note, button, input, textarea, select, a, label"
+        ".workspace, .account-panel, .iris-form, .result-panel, .app-header, .iris-note, .note-tip, button, input, textarea, select, a, label, form, table"
       )
     ) {
       return;
@@ -587,6 +680,41 @@ export default function ConsolePage() {
                 </button>
               </div>
             </form>
+
+            {canEdit && (
+              <div className="csv-panel">
+                <div>
+                  <p className="eyebrow">{t.csvTools}</p>
+                  <p className="csv-note">{t.csvNote}</p>
+                </div>
+                <div className="csv-actions">
+                  <button className="button" type="button" onClick={downloadCsv}>
+                    {t.downloadCsv}
+                  </button>
+                  <button className="button" type="button" onClick={downloadBarcodes}>
+                    {t.downloadBarcodes}
+                  </button>
+                  <button className="button file-button" type="button" onClick={() => csvInputRef.current?.click()}>
+                    {csvFile ? csvFile.name : t.chooseCsv}
+                  </button>
+                  <input
+                    ref={csvInputRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    hidden
+                    onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    className="button success"
+                    type="button"
+                    disabled={!csvFile || busy}
+                    onClick={() => csvFile && importCsv(csvFile)}
+                  >
+                    {t.uploadCsv}
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           <form className="iris-form" onSubmit={handleRegister}>
@@ -706,67 +834,55 @@ export default function ConsolePage() {
       </main>
 
       <div className="note-layer">
-        {notes.map((note, index) => {
-          const mine = canEdit && note.ownerUid === account.uid;
-          return (
-            <div
-              key={note.id}
-              className={`iris-note note-${note.color}${draggingId === note.id ? " is-dragging" : ""}${
-                mine ? "" : " is-readonly"
-              }`}
-              style={
-                {
-                  left: note.x,
-                  top: note.y,
-                  "--rot": `${index % 2 === 0 ? -1.8 : 1.5}deg`
-                } as React.CSSProperties
-              }
-              onPointerMove={mine ? onDrag : undefined}
-              onPointerUp={mine ? endDrag : undefined}
-            >
-              <div
-                className="note-grip"
-                style={{ cursor: mine ? "grab" : "default" }}
-                onPointerDown={mine ? (event) => beginDrag(event, note) : undefined}
-              >
-                {mine ? (
-                  <span className="note-dots">
-                    {NOTE_COLORS.map((color) => (
-                      <button
-                        key={color}
-                        className={`note-dot dot-${color}`}
-                        type="button"
-                        aria-label={color}
-                        onClick={() => queueNoteSave(note.id, { color })}
-                      />
-                    ))}
-                  </span>
-                ) : (
-                  <span className="note-owner">{note.ownerName}</span>
-                )}
-                {mine && (
-                  <button className="note-close" type="button" aria-label={t.delete} onClick={() => removeNote(note.id)}>
-                    ×
-                  </button>
-                )}
-              </div>
-              <textarea
-                className="note-text"
-                value={note.body}
-                placeholder={mine ? t.notePlaceholder : ""}
-                readOnly={!mine}
-                onChange={mine ? (event) => queueNoteSave(note.id, { body: event.target.value }) : undefined}
-              />
+        {notes.map((note, index) => (
+          <div
+            key={note.id}
+            className={`iris-note note-${note.color}${draggingId === note.id ? " is-dragging" : ""}`}
+            style={
+              {
+                left: note.x,
+                top: note.y,
+                "--rot": `${index % 2 === 0 ? -1.8 : 1.5}deg`
+              } as React.CSSProperties
+            }
+            onPointerMove={onDrag}
+            onPointerUp={endDrag}
+          >
+            <div className="note-grip" onPointerDown={(event) => beginDrag(event, note)}>
+              <span className="note-dots">
+                {NOTE_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    className={`note-dot dot-${color}`}
+                    type="button"
+                    aria-label={color}
+                    onClick={() => queueNoteSave(note.id, { color })}
+                  />
+                ))}
+              </span>
+              <button className="note-close" type="button" aria-label={t.delete} onClick={() => removeNote(note.id)}>
+                ×
+              </button>
             </div>
-          );
-        })}
+            <textarea
+              className="note-text"
+              value={note.body}
+              placeholder={t.notePlaceholder}
+              onChange={(event) => queueNoteSave(note.id, { body: event.target.value })}
+            />
+          </div>
+        ))}
       </div>
 
-      {canEdit && (
-        <button className="note-add" type="button" onClick={() => createNoteAt(window.innerWidth / 2, window.innerHeight / 2)}>
-          + {t.addNote}
-        </button>
-      )}
+      {notes.length === 0 && <div className="note-tip">{t.noteHint}</div>}
+
+      <button
+        className="note-add"
+        type="button"
+        onClick={() => createNoteAt(window.innerWidth / 2, window.innerHeight / 2)}
+      >
+        + {t.addNote}
+      </button>
 
       {cameraOpen && (
         <div className="camera-modal" role="dialog" aria-label={t.cameraTitle}>
