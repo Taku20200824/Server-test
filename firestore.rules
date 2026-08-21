@@ -113,19 +113,23 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------
-    // 付箋メモ（本人だけが読み書きできる）
+    // 付箋メモ（共有ボード）
+    //   閲覧はログイン済みユーザー全員。誰でも自分の付箋を作れる。
+    //   編集・削除は付箋の所有者本人だけ。
     // ---------------------------------------------------------
     match /irisNotes/{noteId} {
       function validNote() {
-        return request.resource.data.keys().hasOnly(['body', 'color', 'x', 'y', 'ownerUid', 'updatedAt'])
+        return request.resource.data.keys().hasOnly(['body', 'color', 'x', 'y', 'ownerUid', 'ownerName', 'updatedAt'])
           && request.resource.data.body is string
           && request.resource.data.body.size() <= 3000
           && request.resource.data.color in ['lemon', 'mint', 'rose', 'iris']
           && request.resource.data.x is number
-          && request.resource.data.y is number;
+          && request.resource.data.y is number
+          && request.resource.data.ownerName is string
+          && request.resource.data.ownerName.size() <= 80;
       }
 
-      allow read: if isOwner();
+      allow read: if signedIn();
 
       allow create: if signedIn()
         && validNote()

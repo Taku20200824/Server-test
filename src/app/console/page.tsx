@@ -21,8 +21,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
-  where
+  updateDoc
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut, updatePassword, updateProfile, User } from "firebase/auth";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
@@ -53,6 +52,8 @@ type StickyNote = {
   color: NoteColor;
   x: number;
   y: number;
+  ownerUid: string;
+  ownerName: string;
 };
 
 const NOTE_COLORS: NoteColor[] = ["lemon", "mint", "rose", "iris"];
@@ -114,6 +115,7 @@ export default function ConsolePage() {
   const [profileBusy, setProfileBusy] = useState(false);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const [status, setStatus] = useState("");
   const [statusKind, setStatusKind] = useState<"info" | "error">("info");
@@ -175,12 +177,12 @@ export default function ConsolePage() {
     );
   }, [account, say]);
 
-  /* ---------- sticky notes (per account) ---------- */
+  /* ---------- sticky notes (shared board) ---------- */
 
   useEffect(() => {
     if (!account) return;
     return onSnapshot(
-      query(collection(db, "irisNotes"), where("ownerUid", "==", account.uid)),
+      query(collection(db, "irisNotes")),
       (snapshot) => {
         setNotes(
           snapshot.docs.map((item) => {
@@ -190,7 +192,9 @@ export default function ConsolePage() {
               body: typeof data.body === "string" ? data.body : "",
               color: isNoteColor(data.color) ? data.color : "lemon",
               x: typeof data.x === "number" ? data.x : 40,
-              y: typeof data.y === "number" ? data.y : 140
+              y: typeof data.y === "number" ? data.y : 140,
+              ownerUid: typeof data.ownerUid === "string" ? data.ownerUid : "",
+              ownerName: typeof data.ownerName === "string" ? data.ownerName : ""
             };
           })
         );
@@ -534,6 +538,7 @@ export default function ConsolePage() {
         x,
         y,
         ownerUid: account.uid,
+        ownerName: account.displayName,
         updatedAt: serverTimestamp()
       });
     } catch (error) {
@@ -618,10 +623,15 @@ export default function ConsolePage() {
           </div>
 
           <div className="header-meta">
-            <span className="user-pill">
+            <button
+              type="button"
+              className="user-pill"
+              onClick={() => setAccountOpen((open) => !open)}
+              aria-expanded={accountOpen}
+            >
               <span className="user-name">{account.displayName}</span>
               <span className="role-chip">{account.role === "admin" ? t.roleAdmin : t.roleMember}</span>
-            </span>
+            </button>
             <LanguageSelect language={language} onChange={setLanguage} />
             <ThemeToggle dark={dark} onToggle={toggleTheme} t={t} className="" />
             <button type="button" onClick={() => setCameraOpen(true)}>
@@ -641,6 +651,7 @@ export default function ConsolePage() {
         </p>
 
         <div className="workspace">
+          {accountOpen && (
           <section className="account-panel">
             <div className="result-heading">
               <div>
@@ -716,6 +727,7 @@ export default function ConsolePage() {
               </div>
             )}
           </section>
+          )}
 
           <form className="iris-form" onSubmit={handleRegister}>
             {!canEdit && <p className="view-only-line">{t.viewOnlyNotice}</p>}
@@ -834,44 +846,61 @@ export default function ConsolePage() {
       </main>
 
       <div className="note-layer">
-        {notes.map((note, index) => (
-          <div
-            key={note.id}
-            className={`iris-note note-${note.color}${draggingId === note.id ? " is-dragging" : ""}`}
-            style={
-              {
-                left: note.x,
-                top: note.y,
-                "--rot": `${index % 2 === 0 ? -1.8 : 1.5}deg`
-              } as React.CSSProperties
-            }
-            onPointerMove={onDrag}
-            onPointerUp={endDrag}
-          >
-            <div className="note-grip" onPointerDown={(event) => beginDrag(event, note)}>
-              <span className="note-dots">
-                {NOTE_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    className={`note-dot dot-${color}`}
-                    type="button"
-                    aria-label={color}
-                    onClick={() => queueNoteSave(note.id, { color })}
-                  />
-                ))}
-              </span>
-              <button className="note-close" type="button" aria-label={t.delete} onClick={() => removeNote(note.id)}>
-                ×
-              </button>
+        {notes.map((note, index) => {
+          // 共有ボード：誰でも見られるが、編集・削除できるのは所有者だけ
+          const mine = note.ownerUid === account.uid;
+          return (
+            <div
+              key={note.id}
+              className={`iris-note note-${note.color}${draggingId === note.id ? " is-dragging" : ""}${
+                mine ? "" : " is-readonly"
+              }`}
+              style={
+                {
+                  left: note.x,
+                  top: note.y,
+                  "--rot": `${index % 2 === 0 ? -1.8 : 1.5}deg`
+                } as React.CSSProperties
+              }
+              onPointerMove={mine ? onDrag : undefined}
+              onPointerUp={mine ? endDrag : undefined}
+            >
+              <div
+                className="note-grip"
+                style={{ cursor: mine ? "grab" : "default" }}
+                onPointerDown={mine ? (event) => beginDrag(event, note) : undefined}
+              >
+                {mine ? (
+                  <span className="note-dots">
+                    {NOTE_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        className={`note-dot dot-${color}`}
+                        type="button"
+                        aria-label={color}
+                        onClick={() => queueNoteSave(note.id, { color })}
+                      />
+                    ))}
+                  </span>
+                ) : (
+                  <span className="note-owner">{note.ownerName}</span>
+                )}
+                {mine && (
+                  <button className="note-close" type="button" aria-label={t.delete} onClick={() => removeNote(note.id)}>
+                    ×
+                  </button>
+                )}
+              </div>
+              <textarea
+                className="note-text"
+                value={note.body}
+                placeholder={mine ? t.notePlaceholder : ""}
+                readOnly={!mine}
+                onChange={mine ? (event) => queueNoteSave(note.id, { body: event.target.value }) : undefined}
+              />
             </div>
-            <textarea
-              className="note-text"
-              value={note.body}
-              placeholder={t.notePlaceholder}
-              onChange={(event) => queueNoteSave(note.id, { body: event.target.value })}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {notes.length === 0 && <div className="note-tip">{t.noteHint}</div>}
