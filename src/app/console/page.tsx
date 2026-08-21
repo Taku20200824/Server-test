@@ -26,7 +26,7 @@ import {
 import { onAuthStateChanged, signOut, updatePassword, updateProfile, User } from "firebase/auth";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
-import { Barcode } from "@/components/Barcode";
+import { Barcode, code39SvgString } from "@/components/Barcode";
 import { auth, db } from "@/lib/firebase";
 import { Account, Role, emailToUsername, isRole, roleForId } from "@/lib/account";
 import { labels } from "@/lib/i18n";
@@ -431,18 +431,42 @@ export default function ConsolePage() {
     URL.revokeObjectURL(url);
   }
 
-  function downloadBarcodes() {
-    const header = [t.colNo, t.colBarcode, t.colName];
-    const rows = filtered.map((record) =>
-      [csvCell(String(record.no)), `="${record.barcode.replaceAll('"', "")}"`, csvCell(record.name)].join(",")
-    );
-    const csv = "﻿" + [header.map(csvCell).join(","), ...rows].join("\r\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "iris-barcodes.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+  // バーコードを印刷用シートにして開き、印刷ダイアログから PDF 保存できるようにする
+  function printBarcodes() {
+    if (filtered.length === 0) return say(t.empty, "error");
+
+    const esc = (value: string) =>
+      value.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+
+    const labels = filtered
+      .map(
+        (record) => `
+      <section class="label">
+        <div class="meta"><span>ID ${esc(String(record.no))}</span><span>${esc(record.name)}</span></div>
+        <div class="barcode">${code39SvgString(record.barcode)}</div>
+        <div class="number">${esc(record.barcode)}</div>
+      </section>`
+      )
+      .join("");
+
+    const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>IRIS Barcodes</title><style>
+      *{box-sizing:border-box}
+      body{margin:0;padding:24px;background:#f7f7f4;color:#111;font-family:Arial,'Helvetica Neue',sans-serif}
+      h1{margin:0 0 18px;font-size:22px;letter-spacing:.08em;text-transform:uppercase}
+      .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+      .label{break-inside:avoid;background:#fff;border:1px solid #d8d8d2;border-radius:12px;padding:14px;box-shadow:0 8px 24px #00000014}
+      .meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#666}
+      .barcode{display:flex;justify-content:center;padding:10px 6px;background:#fff;border-radius:8px}
+      .barcode svg{max-width:100%;height:auto}
+      .number{text-align:center;margin-top:8px;font-size:18px;font-weight:800;letter-spacing:.16em}
+      @media print{body{background:#fff;padding:10mm}.label{box-shadow:none;border-color:#111}h1{display:none}}
+    </style></head><body><h1>IRIS Barcodes</h1><div class="sheet">${labels}</div>
+    <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script></body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return say(t.popupBlocked, "error");
+    win.document.write(html);
+    win.document.close();
   }
 
   function parseCsv(text: string): string[][] {
@@ -704,7 +728,7 @@ export default function ConsolePage() {
                   <button className="button" type="button" onClick={downloadCsv}>
                     {t.downloadCsv}
                   </button>
-                  <button className="button" type="button" onClick={downloadBarcodes}>
+                  <button className="button" type="button" onClick={printBarcodes}>
                     {t.downloadBarcodes}
                   </button>
                   <button className="button file-button" type="button" onClick={() => csvInputRef.current?.click()}>

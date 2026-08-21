@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 依存ライブラリなしで Code 39 バーコードを SVG 描画する。
+ * 依存ライブラリなしで Code 39 バーコードを描く。
  * 数字（0-9）に対応。スキャナで読めるよう白地・黒バーで描く。
  */
 
@@ -19,6 +19,39 @@ const CODE39: Record<string, string> = {
   "*": "nnwnwwnwn"
 };
 
+/** Code 39 のバー（黒帯）の位置と幅を計算する。 */
+export function code39Bars(value: string, narrow = 1.5): { bars: { x: number; w: number }[]; width: number } {
+  const digits = value.replace(/[^0-9]/g, "");
+  if (!digits) return { bars: [], width: 0 };
+
+  const wide = narrow * 3;
+  const gap = narrow;
+  const chars = `*${digits}*`.split("");
+  const bars: { x: number; w: number }[] = [];
+  let x = 0;
+
+  for (const char of chars) {
+    const pattern = CODE39[char];
+    if (!pattern) continue;
+    for (let i = 0; i < pattern.length; i++) {
+      const w = pattern[i] === "w" ? wide : narrow;
+      if (i % 2 === 0) bars.push({ x, w });
+      x += w;
+    }
+    x += gap;
+  }
+
+  return { bars, width: x - gap };
+}
+
+/** 印刷用などに使う Code 39 の SVG 文字列を返す。 */
+export function code39SvgString(value: string, height = 60, narrow = 2): string {
+  const { bars, width } = code39Bars(value, narrow);
+  if (!width) return "";
+  const rects = bars.map((bar) => `<rect x="${bar.x}" y="0" width="${bar.w}" height="${height}"/>`).join("");
+  return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"/><g fill="#111111">${rects}</g></svg>`;
+}
+
 export function Barcode({
   value,
   height = 34,
@@ -31,40 +64,20 @@ export function Barcode({
   className?: string;
 }) {
   const digits = value.replace(/[^0-9]/g, "");
-  if (!digits) return null;
-
-  const wide = narrow * 3;
-  const gap = narrow; // 文字間の細スペース
-  const chars = `*${digits}*`.split("");
-
-  const bars: { x: number; w: number }[] = [];
-  let x = 0;
-
-  for (let c = 0; c < chars.length; c++) {
-    const pattern = CODE39[chars[c]];
-    if (!pattern) continue;
-    for (let i = 0; i < pattern.length; i++) {
-      const w = pattern[i] === "w" ? wide : narrow;
-      // 偶数インデックスはバー（黒）、奇数はスペース（白）
-      if (i % 2 === 0) bars.push({ x, w });
-      x += w;
-    }
-    x += gap; // 文字間ギャップ
-  }
-
-  const totalWidth = x - gap;
+  const { bars, width } = code39Bars(value, narrow);
+  if (!width) return null;
 
   return (
     <svg
       className={className}
-      viewBox={`0 0 ${totalWidth} ${height}`}
-      width={totalWidth}
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
       height={height}
       role="img"
       aria-label={digits}
       preserveAspectRatio="xMidYMid meet"
     >
-      <rect x={0} y={0} width={totalWidth} height={height} fill="#ffffff" />
+      <rect x={0} y={0} width={width} height={height} fill="#ffffff" />
       {bars.map((bar, index) => (
         <rect key={index} x={bar.x} y={0} width={bar.w} height={height} fill="#111111" />
       ))}
