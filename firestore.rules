@@ -74,7 +74,7 @@ service cloud.firestore {
     // ---------------------------------------------------------
     // バーコードレコード（共有台帳）
     //   閲覧はログイン済みユーザー全員。
-    //   変更・削除は登録者本人か管理者だけ。
+    //   登録・変更・削除は管理者だけ（その他は閲覧のみ）。
     // ---------------------------------------------------------
     match /irisRecords/{recordId} {
       function validRecord() {
@@ -101,41 +101,46 @@ service cloud.firestore {
 
       allow read: if signedIn();
 
-      allow create: if signedIn()
+      allow create: if isAdmin()
         && validRecord()
         && request.resource.data.ownerUid == request.auth.uid;
 
-      allow update: if (isOwner() || isAdmin())
+      allow update: if isAdmin()
         && validRecord()
         && request.resource.data.ownerUid == resource.data.ownerUid;
 
-      allow delete: if isOwner() || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ---------------------------------------------------------
-    // 付箋メモ（本人だけが読み書きできる）
+    // 付箋メモ（共有ボード）
+    //   閲覧はログイン済みユーザー全員。
+    //   作成・編集・削除は管理者本人（自分の付箋）だけ。
     // ---------------------------------------------------------
     match /irisNotes/{noteId} {
       function validNote() {
-        return request.resource.data.keys().hasOnly(['body', 'color', 'x', 'y', 'ownerUid', 'updatedAt'])
+        return request.resource.data.keys().hasOnly(['body', 'color', 'x', 'y', 'ownerUid', 'ownerName', 'updatedAt'])
           && request.resource.data.body is string
           && request.resource.data.body.size() <= 3000
           && request.resource.data.color in ['lemon', 'mint', 'rose', 'iris']
           && request.resource.data.x is number
-          && request.resource.data.y is number;
+          && request.resource.data.y is number
+          && request.resource.data.ownerName is string
+          && request.resource.data.ownerName.size() <= 80;
       }
 
-      allow read: if isOwner();
+      allow read: if signedIn();
 
-      allow create: if signedIn()
+      allow create: if isAdmin()
         && validNote()
         && request.resource.data.ownerUid == request.auth.uid;
 
       allow update: if isOwner()
+        && isAdmin()
         && validNote()
         && request.resource.data.ownerUid == resource.data.ownerUid;
 
-      allow delete: if isOwner();
+      allow delete: if isOwner() && isAdmin();
     }
 
     // ---------------------------------------------------------
