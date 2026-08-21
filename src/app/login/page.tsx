@@ -11,7 +11,7 @@ import {
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { auth, db } from "@/lib/firebase";
-import { isValidUsername, normalizeUsername, usernameToEmail } from "@/lib/account";
+import { isValidUsername, normalizeUsername, roleForId, usernameToEmail } from "@/lib/account";
 import { LabelSet, labels } from "@/lib/i18n";
 
 type Mode = "login" | "signup";
@@ -84,7 +84,7 @@ export default function LoginPage() {
       await setDoc(doc(db, "irisUsers", credential.user.uid), {
         username: cleanUsername,
         displayName: cleanDisplayName,
-        role: "member",
+        role: roleForId(cleanUsername),
         updatedAt: serverTimestamp()
       });
       router.replace("/console");
@@ -113,6 +113,7 @@ export default function LoginPage() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               autoComplete="username"
+              inputMode="numeric"
               autoCapitalize="none"
               spellCheck={false}
               autoFocus
