@@ -17,10 +17,19 @@ service cloud.firestore {
       return signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 
+    function validLoginId(value) {
+      return value is string && value.matches('^[0-9]{1,20}$');
+    }
+
+    function validCreatedRole(loginId, role) {
+      return (loginId.matches('^9.*') && role == 'admin')
+        || (!loginId.matches('^9.*') && role == 'customer');
+    }
+
     // ---------------------------------------------------------
-    // アカウント（表示名・権限）
-    //   role の昇格はコンソールからはできない。管理者にするときは
-    //   Firebase Console で role を 'admin' に書き換える。
+    // アカウント（ID・表示名・権限）
+    //   ID が 9 で始まる場合は admin、それ以外は customer。
+    //   作成後にアプリ側から role を変更することはできない。
     // ---------------------------------------------------------
     match /irisUsers/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
@@ -28,12 +37,11 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['username', 'displayName', 'role', 'updatedAt'])
-        && request.resource.data.username is string
-        && request.resource.data.username.matches('^[a-z0-9._-]{3,32}$')
+        && validLoginId(request.resource.data.username)
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
         && request.resource.data.displayName.size() <= 80
-        && request.resource.data.role == 'member';
+        && validCreatedRole(request.resource.data.username, request.resource.data.role);
 
       allow update: if signedIn()
         && request.auth.uid == uid
