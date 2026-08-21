@@ -1,4 +1,4 @@
-export type Role = "admin" | "member";
+export type Role = "admin" | "customer";
 
 export type Account = {
   uid: string;
@@ -9,17 +9,21 @@ export type Account = {
 
 /**
  * Firebase Auth はメールアドレスでユーザーを識別するため、
- * ローカル版と同じ「ユーザー名」ログインを実現するために内部でメール形式へ変換する。
+ * 画面では ID を入力し、内部だけメール形式へ変換する。
  * 実際にメールは送られないので、受信可能なドメインは使わない。
  */
 export const USERNAME_DOMAIN = "iris-console.local";
 
 export function normalizeUsername(value: string) {
-  return value.trim().toLowerCase();
+  return value.trim().replace(/\D/g, "");
 }
 
 export function isValidUsername(value: string) {
-  return /^[a-z0-9._-]{3,32}$/.test(value);
+  return /^[0-9]{1,20}$/.test(value);
+}
+
+export function roleForId(value: string): Role {
+  return normalizeUsername(value).startsWith("9") ? "admin" : "customer";
 }
 
 export function usernameToEmail(value: string) {
@@ -32,5 +36,5 @@ export function emailToUsername(email: string | null | undefined) {
 }
 
 export function isRole(value: unknown): value is Role {
-  return value === "admin" || value === "member";
+  return value === "admin" || value === "customer";
 }
