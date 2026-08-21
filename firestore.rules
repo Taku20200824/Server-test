@@ -26,6 +26,22 @@ service cloud.firestore {
         || (!loginId.matches('^9.*') && role == 'customer');
     }
 
+    function isLegacyCollection(collectionName) {
+      return collectionName in [
+        'announcements',
+        'events',
+        'features',
+        'gallery',
+        'irisAccounts',
+        'mapMarkers',
+        'rules',
+        'scores',
+        'serverStatus',
+        'siteText',
+        'staff'
+      ];
+    }
+
     // ---------------------------------------------------------
     // アカウント（ID・表示名・権限）
     //   ID が 9 で始まる場合は admin、それ以外は customer。
@@ -120,6 +136,15 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid;
 
       allow delete: if isOwner();
+    }
+
+    // ---------------------------------------------------------
+    // 旧 THE-ISLE / 不要データの cleanup 用。
+    // admin だけが一覧取得と削除できる。新規作成・更新は不可。
+    // ---------------------------------------------------------
+    match /{legacyCollection}/{documentId} {
+      allow read, delete: if isAdmin() && isLegacyCollection(legacyCollection);
+      allow create, update: if false;
     }
   }
 }
