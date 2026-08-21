@@ -28,7 +28,7 @@ import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { Barcode } from "@/components/Barcode";
 import { auth, db } from "@/lib/firebase";
-import { Account, Role, emailToUsername, isRole } from "@/lib/account";
+import { Account, Role, emailToUsername, isRole, roleForId } from "@/lib/account";
 import { labels } from "@/lib/i18n";
 
 type IrisRecord = {
@@ -143,8 +143,10 @@ export default function ConsolePage() {
         return;
       }
 
-      let displayName = user.displayName || emailToUsername(user.email);
-      let role: Role = "member";
+      const username = emailToUsername(user.email);
+      let displayName = user.displayName || username;
+      // Firestore プロフィールが読めない / 無い場合でも、ID が 9 で始まれば admin として扱う
+      let role: Role = roleForId(username);
 
       try {
         const profile = await getDoc(doc(db, "irisUsers", user.uid));
@@ -157,7 +159,7 @@ export default function ConsolePage() {
         /* プロフィールが読めなくてもコンソールは表示する */
       }
 
-      setAccount({ uid: user.uid, username: emailToUsername(user.email), displayName, role });
+      setAccount({ uid: user.uid, username, displayName, role });
     });
   }, [router]);
 
