@@ -24,6 +24,7 @@ import {
   updateDoc
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut, updatePassword, updateProfile, User } from "firebase/auth";
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { Barcode } from "@/components/Barcode";
 import { auth, db } from "@/lib/firebase";
@@ -120,8 +121,6 @@ export default function ConsolePage() {
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanFrame = useRef<number>(0);
 
   const t = labels[language];
   const canEdit = account?.role === "admin";
@@ -205,78 +204,38 @@ export default function ConsolePage() {
     return () => Object.values(timers).forEach(clearTimeout);
   }, []);
 
-  /* ---------- camera scan ---------- */
+  /* ---------- camera scan (ZXing: どのブラウザでも動く) ---------- */
 
   useEffect(() => {
     if (!cameraOpen) return;
 
     let cancelled = false;
-    type Detector = { detect: (source: CanvasImageSource) => Promise<{ rawValue?: string }[]> };
-    const DetectorCtor = (window as unknown as { BarcodeDetector?: new (options?: unknown) => Detector }).BarcodeDetector;
+    let controls: IScannerControls | null = null;
+    const reader = new BrowserMultiFormatReader();
 
-    async function start() {
-      if (!DetectorCtor || !navigator.mediaDevices) {
-        say(t.cameraUnsupported, "error");
-        setCameraOpen(false);
-        return;
-      }
-
-      let detector: Detector;
+    (async () => {
+      const video = videoRef.current;
+      if (!video) return;
       try {
-        detector = new DetectorCtor({
-          formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "itf", "codabar", "qr_code"]
+        controls = await reader.decodeFromVideoDevice(undefined, video, (result, _error, scanControls) => {
+          if (!result) return;
+          const raw = result.getText();
+          const digits = raw.replace(/\D/g, "");
+          setBarcode(digits || raw);
+          say(t.scanned);
+          scanControls.stop();
+          if (!cancelled) setCameraOpen(false);
         });
-      } catch {
-        detector = new DetectorCtor();
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
+        if (cancelled) controls.stop();
       } catch {
         say(t.cameraDenied, "error");
-        setCameraOpen(false);
-        return;
+        if (!cancelled) setCameraOpen(false);
       }
-
-      const tick = async () => {
-        const video = videoRef.current;
-        if (cancelled || !video) return;
-        try {
-          const codes = await detector.detect(video);
-          if (codes && codes.length > 0) {
-            const raw = String(codes[0].rawValue ?? "");
-            const digits = raw.replace(/\D/g, "");
-            setBarcode(digits || raw);
-            say(t.scanned);
-            setCameraOpen(false);
-            return;
-          }
-        } catch {
-          /* フレーム取得に失敗しても次のフレームで再試行する */
-        }
-        scanFrame.current = requestAnimationFrame(tick);
-      };
-      scanFrame.current = requestAnimationFrame(tick);
-    }
-
-    start();
+    })();
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(scanFrame.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
+      if (controls) controls.stop();
     };
   }, [cameraOpen, say, t]);
 
@@ -490,8 +449,15 @@ export default function ConsolePage() {
 
   function handleBackgroundDouble(event: React.MouseEvent<HTMLElement>) {
     if (!canEdit) return;
-    // 背景（空白部分）のダブルクリックのみ拾う
-    if (event.target !== event.currentTarget) return;
+    // パネルやコントロール上のダブルクリックは無視し、空白の背景だけで付箋を作る
+    const target = event.target as HTMLElement;
+    if (
+      target.closest(
+        ".account-panel, .iris-form, .result-panel, .app-header, .iris-note, button, input, textarea, select, a, label"
+      )
+    ) {
+      return;
+    }
     createNoteAt(event.clientX, event.clientY);
   }
 
