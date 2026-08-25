@@ -25,6 +25,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut, updatePassword, updateProfile, User } from "firebase/auth";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { Barcode, code39SvgString } from "@/components/Barcode";
 import { auth, db } from "@/lib/firebase";
@@ -125,6 +126,7 @@ export default function ConsolePage() {
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const recordsRef = useRef<IrisRecord[]>([]);
 
   const t = labels[language];
   const canEdit = account?.role === "admin";
@@ -217,7 +219,22 @@ export default function ConsolePage() {
 
     let cancelled = false;
     let controls: IScannerControls | null = null;
-    const reader = new BrowserMultiFormatReader();
+
+    // 認識精度を上げる：対応フォーマットを明示し、TRY_HARDER を有効にする
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.CODE_39,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.ITF,
+      BarcodeFormat.CODABAR,
+      BarcodeFormat.QR_CODE
+    ]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    const reader = new BrowserMultiFormatReader(hints);
 
     (async () => {
       const video = videoRef.current;
@@ -226,11 +243,23 @@ export default function ConsolePage() {
         controls = await reader.decodeFromVideoDevice(undefined, video, (result, _error, scanControls) => {
           if (!result) return;
           const raw = result.getText();
-          const digits = raw.replace(/\D/g, "");
-          setBarcode(digits || raw);
-          say(t.scanned);
+          const value = raw.replace(/\D/g, "") || raw;
           scanControls.stop();
-          if (!cancelled) setCameraOpen(false);
+          if (cancelled) return;
+
+          // スキャンしたバーコードの人を探す（先頭の 0 の違いも許容）
+          const strip = (text: string) => text.replace(/^0+/, "");
+          const hit = recordsRef.current.find(
+            (record) =>
+              record.barcode === value || strip(record.barcode) === strip(value) || String(record.no) === value
+          );
+
+          setBarcode(hit ? hit.barcode : value);
+          setCameraOpen(false);
+          say(
+            hit ? `${hit.no} · ${hit.name}${hit.kanji ? " / " + hit.kanji : ""}` : t.notFound,
+            hit ? "info" : "error"
+          );
         });
         if (cancelled) controls.stop();
       } catch {
@@ -259,6 +288,9 @@ export default function ConsolePage() {
   }, [records, barcode]);
 
   const nextNo = useMemo(() => records.reduce((max, record) => Math.max(max, record.no), 0) + 1, [records]);
+
+  // カメラのコールバックから最新のレコードを参照できるようにする
+  recordsRef.current = records;
 
   /* ---------- record actions ---------- */
 
