@@ -907,7 +907,7 @@ export default function ConsolePage() {
 
       <div className="note-layer">
         {notes.map((note, index) => {
-          // 共有ボード：誰でも見られるが、編集・削除できるのは所有者だけ
+          // 共有ボード：誰でも見て動かせる。文字の編集・色・削除は所有者だけ。
           const mine = note.ownerUid === account.uid;
           return (
             <div
@@ -922,14 +922,10 @@ export default function ConsolePage() {
                   "--rot": `${index % 2 === 0 ? -1.8 : 1.5}deg`
                 } as React.CSSProperties
               }
-              onPointerMove={mine ? onDrag : undefined}
-              onPointerUp={mine ? endDrag : undefined}
+              onPointerMove={onDrag}
+              onPointerUp={endDrag}
             >
-              <div
-                className="note-grip"
-                style={{ cursor: mine ? "grab" : "default" }}
-                onPointerDown={mine ? (event) => beginDrag(event, note) : undefined}
-              >
+              <div className="note-grip" style={{ cursor: "grab" }} onPointerDown={(event) => beginDrag(event, note)}>
                 {mine ? (
                   <span className="note-dots">
                     {NOTE_COLORS.map((color) => (

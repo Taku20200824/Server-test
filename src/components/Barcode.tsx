@@ -44,12 +44,14 @@ export function code39Bars(value: string, narrow = 1.5): { bars: { x: number; w:
   return { bars, width: x - gap };
 }
 
-/** 印刷用などに使う Code 39 の SVG 文字列を返す。 */
+/** 印刷用などに使う Code 39 の SVG 文字列を返す。両側にクワイエットゾーン（余白）を付ける。 */
 export function code39SvgString(value: string, height = 60, narrow = 2): string {
   const { bars, width } = code39Bars(value, narrow);
   if (!width) return "";
-  const rects = bars.map((bar) => `<rect x="${bar.x}" y="0" width="${bar.w}" height="${height}"/>`).join("");
-  return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"/><g fill="#111111">${rects}</g></svg>`;
+  const quiet = narrow * 12; // スキャナが読めるように左右へ十分な余白を確保する
+  const total = width + quiet * 2;
+  const rects = bars.map((bar) => `<rect x="${bar.x + quiet}" y="0" width="${bar.w}" height="${height}"/>`).join("");
+  return `<svg viewBox="0 0 ${total} ${height}" width="${total}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="${total}" height="${height}" fill="#ffffff"/><g fill="#111111">${rects}</g></svg>`;
 }
 
 export function Barcode({

@@ -135,9 +135,18 @@ service cloud.firestore {
         && validNote()
         && request.resource.data.ownerUid == request.auth.uid;
 
-      allow update: if isOwner()
+      // 所有者は自由に編集できる。他人は位置（x/y）だけ動かせる。
+      allow update: if signedIn()
         && validNote()
-        && request.resource.data.ownerUid == resource.data.ownerUid;
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && (
+          isOwner()
+          || (
+            request.resource.data.body == resource.data.body
+            && request.resource.data.color == resource.data.color
+            && request.resource.data.ownerName == resource.data.ownerName
+          )
+        );
 
       allow delete: if isOwner();
     }
