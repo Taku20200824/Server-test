@@ -26,6 +26,7 @@ import {
 import { onAuthStateChanged, signOut, updatePassword, updateProfile, User } from "firebase/auth";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
+import QRCode from "qrcode";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
 import { Barcode, code39SvgString } from "@/components/Barcode";
 import { auth, db } from "@/lib/firebase";
@@ -472,40 +473,50 @@ export default function ConsolePage() {
     URL.revokeObjectURL(url);
   }
 
-  // バーコードを印刷用シートにして開き、印刷ダイアログから PDF 保存できるようにする
-  function printBarcodes() {
+  // バーコードを印刷用シートにして開き、印刷ダイアログから PDF 保存できるようにする。
+  // Web カメラでも確実に読めるよう QR コードを主役にし、Code39 も併記する。
+  async function printBarcodes() {
     if (filtered.length === 0) return say(t.empty, "error");
 
     const esc = (value: string) =>
       value.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
-    const labels = filtered
-      .map(
-        (record) => `
+    const win = window.open("", "_blank");
+    if (!win) return say(t.popupBlocked, "error");
+
+    const labels = await Promise.all(
+      filtered.map(async (record) => {
+        const qr = await QRCode.toString(record.barcode || String(record.no), {
+          type: "svg",
+          margin: 2,
+          errorCorrectionLevel: "M"
+        });
+        return `
       <section class="label">
         <div class="meta"><span>ID ${esc(String(record.no))}</span><span>${esc(record.name)}</span></div>
-        <div class="barcode">${code39SvgString(record.barcode, 110, 3)}</div>
+        <div class="qr">${qr}</div>
+        <div class="barcode">${code39SvgString(record.barcode, 90, 3)}</div>
         <div class="number">${esc(record.barcode)}</div>
-      </section>`
-      )
-      .join("");
+      </section>`;
+      })
+    );
 
     const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>IRIS Barcodes</title><style>
       *{box-sizing:border-box}
       body{margin:0;padding:24px;background:#f7f7f4;color:#111;font-family:Arial,'Helvetica Neue',sans-serif}
       h1{margin:0 0 18px;font-size:22px;letter-spacing:.08em;text-transform:uppercase}
-      .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-      .label{break-inside:avoid;background:#fff;border:1px solid #d8d8d2;border-radius:12px;padding:14px;box-shadow:0 8px 24px #00000014}
+      .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+      .label{break-inside:avoid;background:#fff;border:1px solid #d8d8d2;border-radius:12px;padding:16px;box-shadow:0 8px 24px #00000014}
       .meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#666}
-      .barcode{display:flex;justify-content:center;padding:10px 6px;background:#fff;border-radius:8px}
+      .qr{display:flex;justify-content:center;padding:6px;background:#fff;border-radius:8px}
+      .qr svg{width:200px;height:200px}
+      .barcode{display:flex;justify-content:center;padding:8px 6px 0;background:#fff;border-radius:8px}
       .barcode svg{max-width:100%;height:auto}
-      .number{text-align:center;margin-top:8px;font-size:18px;font-weight:800;letter-spacing:.16em}
+      .number{text-align:center;margin-top:6px;font-size:18px;font-weight:800;letter-spacing:.16em}
       @media print{body{background:#fff;padding:10mm}.label{box-shadow:none;border-color:#111}h1{display:none}}
-    </style></head><body><h1>IRIS Barcodes</h1><div class="sheet">${labels}</div>
+    </style></head><body><h1>IRIS Barcodes</h1><div class="sheet">${labels.join("")}</div>
     <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script></body></html>`;
 
-    const win = window.open("", "_blank");
-    if (!win) return say(t.popupBlocked, "error");
     win.document.write(html);
     win.document.close();
   }
