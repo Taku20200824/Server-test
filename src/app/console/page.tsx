@@ -603,11 +603,12 @@ export default function ConsolePage() {
 
   /* ---------- note actions ---------- */
 
-  // 付箋はアカウントごと。誰でも自分の付箋を作成・編集・削除できる。
-  async function createNoteAt(clientX: number, clientY: number) {
+  // 付箋は共有ボード。座標はページ（ドキュメント）基準なのでスクロールしても背景に残る。
+  async function createNoteAt(pageX: number, pageY: number) {
     if (!account) return;
-    const x = Math.max(8, Math.min(window.innerWidth - 232, clientX - 110));
-    const y = Math.max(8, Math.min(window.innerHeight - 150, clientY - 20));
+    const maxY = Math.max(document.documentElement.scrollHeight, window.innerHeight) - 150;
+    const x = Math.max(8, Math.min(window.innerWidth - 232, pageX - 110));
+    const y = Math.max(8, Math.min(maxY, pageY - 20));
     const index = notes.length;
     try {
       await addDoc(collection(db, "irisNotes"), {
@@ -634,7 +635,7 @@ export default function ConsolePage() {
     ) {
       return;
     }
-    createNoteAt(event.clientX, event.clientY);
+    createNoteAt(event.pageX, event.pageY);
   }
 
   function queueNoteSave(id: string, patch: Partial<StickyNote>) {
@@ -650,7 +651,7 @@ export default function ConsolePage() {
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>, note: StickyNote) {
     // × や色ボタンを押したときはドラッグを始めない（クリックを奪わない）
     if ((event.target as HTMLElement).closest("button")) return;
-    dragRef.current = { id: note.id, dx: event.clientX - note.x, dy: event.clientY - note.y };
+    dragRef.current = { id: note.id, dx: event.pageX - note.x, dy: event.pageY - note.y };
     setDraggingId(note.id);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -658,8 +659,9 @@ export default function ConsolePage() {
   function onDrag(event: ReactPointerEvent<HTMLDivElement>) {
     const drag = dragRef.current;
     if (!drag) return;
-    const x = Math.max(8, Math.min(window.innerWidth - 232, event.clientX - drag.dx));
-    const y = Math.max(8, Math.min(window.innerHeight - 150, event.clientY - drag.dy));
+    const maxY = Math.max(document.documentElement.scrollHeight, window.innerHeight) - 150;
+    const x = Math.max(8, Math.min(window.innerWidth - 232, event.pageX - drag.dx));
+    const y = Math.max(8, Math.min(maxY, event.pageY - drag.dy));
     setNotes((current) => current.map((note) => (note.id === drag.id ? { ...note, x, y } : note)));
   }
 
@@ -984,7 +986,7 @@ export default function ConsolePage() {
       <button
         className="note-add"
         type="button"
-        onClick={() => createNoteAt(window.innerWidth / 2, window.innerHeight / 2)}
+        onClick={() => createNoteAt(window.scrollX + window.innerWidth / 2, window.scrollY + window.innerHeight / 2)}
       >
         + {t.addNote}
       </button>

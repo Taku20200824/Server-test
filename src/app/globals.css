@@ -1031,8 +1031,10 @@ textarea:focus {
 /* ---------- sticky notes ---------- */
 
 .note-layer {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   z-index: 3;
   pointer-events: none;
 }
@@ -1255,10 +1257,11 @@ textarea:focus {
 
 @media (max-width: 980px) {
   .app-header {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+    gap: 14px;
     width: calc(100vw - 28px);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .workspace,
@@ -1267,13 +1270,15 @@ textarea:focus {
   }
 
   .app-shell {
-    padding: 20px 14px 40px;
+    padding: 18px 14px 40px;
   }
 
   .header-meta {
     justify-content: flex-start;
+    gap: 6px;
   }
 
+  /* 付箋はスマホでは非表示にして画面を整える */
   .note-layer,
   .note-add {
     display: none;
@@ -1283,6 +1288,57 @@ textarea:focus {
 @media (max-width: 620px) {
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .brand-lockup h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-meta button,
+  .header-meta select,
+  .header-meta .user-pill {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 0.74rem;
+  }
+
+  .account-panel,
+  .result-panel {
+    padding: 20px 16px;
+    border-radius: 22px;
+  }
+
+  .iris-form {
+    padding: 18px 16px;
+    border-radius: 26px;
+  }
+
+  .result-heading h2 {
+    font-size: 1.12rem;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .actions .button {
+    flex: 1 1 auto;
+  }
+
+  .csv-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .csv-actions .button,
+  .csv-actions .file-button {
+    max-width: none;
+    width: 100%;
+    text-align: center;
+  }
+
+  .camera-card {
+    padding: 16px;
   }
 }
 
