@@ -566,24 +566,42 @@ export default function ConsolePage() {
       const rows = parseCsv((await file.text()).replace(/^﻿/, ""));
       if (rows.length <= 1) return say(t.csvEmpty, "error");
 
+      // ヘッダー名から列位置を判定する（列の順序が違っても正しく取り込む）
+      const header = rows[0].map((cell) => cell.trim().toLowerCase());
+      const colOf = (names: string[], fallback: number) => {
+        for (const name of names) {
+          const index = header.indexOf(name.toLowerCase());
+          if (index >= 0) return index;
+        }
+        return fallback;
+      };
+      const idx = {
+        barcode: colOf(["barcode", "バーコード", "баркод", "code", "qr"], 1),
+        name: colOf(["name", "名前", "нэр", "なまえ"], 2),
+        kanji: colOf(["kanji", "漢字", "ханз"], 3),
+        katakana: colOf(["katakana", "カタカナ", "катакана"], 4),
+        address: colOf(["address", "住所", "хаяг"], 5),
+        added: colOf(["added at", "追加日時", "нэмсэн огноо", "addeddatetime", "date"], 6)
+      };
+
       let no = nextNo;
       let added = 0;
-      // 先頭行はヘッダー（NO, バーコード, 名前, 漢字, カタカナ, 住所, 追加日時）
       for (const cols of rows.slice(1)) {
-        // ="000001" 形式や余分な文字を除いて数字だけにする
-        const barcode = (cols[1] ?? "").replace(/\D/g, "").slice(0, 20);
-        const name = (cols[2] ?? "").trim().slice(0, 160);
-        if (!barcode || !name) continue;
+        // ="000001" 形式や余分な文字を除いて数字だけにする（先頭の 0 は保持）
+        const name = (cols[idx.name] ?? "").trim().slice(0, 160);
+        if (!name) continue;
+        // バーコード列が空なら通し番号を使う（必ず読み取れる QR を持たせる）
+        const barcode = (cols[idx.barcode] ?? "").replace(/\D/g, "").slice(0, 20) || String(no);
         await addDoc(collection(db, "irisRecords"), {
           no: no++,
           barcode,
           name,
-          kanji: (cols[3] ?? "").trim().slice(0, 160),
-          katakana: (cols[4] ?? "").trim().slice(0, 160),
-          address: (cols[5] ?? "").trim().slice(0, 300),
+          kanji: (cols[idx.kanji] ?? "").trim().slice(0, 160),
+          katakana: (cols[idx.katakana] ?? "").trim().slice(0, 160),
+          address: (cols[idx.address] ?? "").trim().slice(0, 300),
           ownerUid: account.uid,
           ownerName: account.displayName,
-          addedDateTime: (cols[6] ?? "").trim().slice(0, 40) || nowStamp(),
+          addedDateTime: (cols[idx.added] ?? "").trim().slice(0, 40) || nowStamp(),
           updatedAt: serverTimestamp()
         });
         added++;
@@ -894,7 +912,7 @@ export default function ConsolePage() {
                         <td>
                           <div className="barcode-cell">
                             <span className="is-mono">{record.barcode}</span>
-                            <QrCode value={record.barcode} size={64} />
+                            <QrCode value={record.barcode || String(record.no)} size={64} />
                           </div>
                         </td>
                         <td>{record.name}</td>
