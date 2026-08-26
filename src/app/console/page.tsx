@@ -28,7 +28,7 @@ import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import QRCode from "qrcode";
 import { BrandMark, LanguageSelect, ThemeToggle, useLanguage, useTheme } from "@/components/Controls";
-import { Barcode, code39SvgString } from "@/components/Barcode";
+import { QrCode } from "@/components/QrCode";
 import { auth, db } from "@/lib/firebase";
 import { Account, Role, emailToUsername, isRole, roleForId } from "@/lib/account";
 import { labels } from "@/lib/i18n";
@@ -495,7 +495,6 @@ export default function ConsolePage() {
       <section class="label">
         <div class="meta"><span>ID ${esc(String(record.no))}</span><span>${esc(record.name)}</span></div>
         <div class="qr">${qr}</div>
-        <div class="barcode">${code39SvgString(record.barcode, 90, 3)}</div>
         <div class="number">${esc(record.barcode)}</div>
       </section>`;
       })
@@ -509,10 +508,8 @@ export default function ConsolePage() {
       .label{break-inside:avoid;background:#fff;border:1px solid #d8d8d2;border-radius:12px;padding:16px;box-shadow:0 8px 24px #00000014}
       .meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#666}
       .qr{display:flex;justify-content:center;padding:6px;background:#fff;border-radius:8px}
-      .qr svg{width:200px;height:200px}
-      .barcode{display:flex;justify-content:center;padding:8px 6px 0;background:#fff;border-radius:8px}
-      .barcode svg{max-width:100%;height:auto}
-      .number{text-align:center;margin-top:6px;font-size:18px;font-weight:800;letter-spacing:.16em}
+      .qr svg{width:240px;height:240px}
+      .number{text-align:center;margin-top:10px;font-size:20px;font-weight:800;letter-spacing:.16em}
       @media print{body{background:#fff;padding:10mm}.label{box-shadow:none;border-color:#111}h1{display:none}}
     </style></head><body><h1>IRIS Barcodes</h1><div class="sheet">${labels.join("")}</div>
     <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script></body></html>`;
@@ -897,7 +894,7 @@ export default function ConsolePage() {
                         <td>
                           <div className="barcode-cell">
                             <span className="is-mono">{record.barcode}</span>
-                            <Barcode value={record.barcode} />
+                            <QrCode value={record.barcode} size={64} />
                           </div>
                         </td>
                         <td>{record.name}</td>
