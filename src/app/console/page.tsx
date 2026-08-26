@@ -236,11 +236,20 @@ export default function ConsolePage() {
     hints.set(DecodeHintType.TRY_HARDER, true);
     const reader = new BrowserMultiFormatReader(hints);
 
+    // 背面カメラ優先・高解像度で映すとバーコードを読み取りやすい
+    const constraints: MediaStreamConstraints = {
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+
     (async () => {
       const video = videoRef.current;
       if (!video) return;
       try {
-        controls = await reader.decodeFromVideoDevice(undefined, video, (result, _error, scanControls) => {
+        controls = await reader.decodeFromConstraints(constraints, video, (result, _error, scanControls) => {
           if (!result) return;
           const raw = result.getText();
           const value = raw.replace(/\D/g, "") || raw;
@@ -475,7 +484,7 @@ export default function ConsolePage() {
         (record) => `
       <section class="label">
         <div class="meta"><span>ID ${esc(String(record.no))}</span><span>${esc(record.name)}</span></div>
-        <div class="barcode">${code39SvgString(record.barcode)}</div>
+        <div class="barcode">${code39SvgString(record.barcode, 110, 3)}</div>
         <div class="number">${esc(record.barcode)}</div>
       </section>`
       )
@@ -485,7 +494,7 @@ export default function ConsolePage() {
       *{box-sizing:border-box}
       body{margin:0;padding:24px;background:#f7f7f4;color:#111;font-family:Arial,'Helvetica Neue',sans-serif}
       h1{margin:0 0 18px;font-size:22px;letter-spacing:.08em;text-transform:uppercase}
-      .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+      .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
       .label{break-inside:avoid;background:#fff;border:1px solid #d8d8d2;border-radius:12px;padding:14px;box-shadow:0 8px 24px #00000014}
       .meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#666}
       .barcode{display:flex;justify-content:center;padding:10px 6px;background:#fff;border-radius:8px}
